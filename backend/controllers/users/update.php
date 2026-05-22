@@ -13,19 +13,20 @@ $user = new Utilisateur($db);
 
 $data = json_decode(file_get_contents('php://input'));
 
-if (!isset($data->nom, $data->prenom, $data->email, $data->mot_de_passe)) {
-    echo json_encode(['message' => 'Données manquantes']);
+if (!isset($data->id)) {
+    echo json_encode(['message' => 'ID utilisateur requis']);
     exit;
 }
 
-$user->nom         = $data->nom;
-$user->prenom      = $data->prenom;
-$user->email       = $data->email;
-$user->mot_de_passe = $data->mot_de_passe;
-$user->role        = 'etudiant';
+$user->id = $data->id;
+$user->nom = $data->nom ?? null;
+$user->prenom = $data->prenom ?? null;
+$user->email = $data->email ?? null;
+$user->role = $data->role ?? null;
+$user->actif = isset($data->actif) ? intval($data->actif) : 1;
 
-if ($user->register()) {
-    echo json_encode(['message' => 'Compte créé', 'id' => $user->id]);
+if ($user->update()) {
+    echo json_encode(['message' => 'Utilisateur mis à jour']);
 } else {
-    echo json_encode(['message' => 'Erreur lors de la création du compte']);
+    echo json_encode(['message' => 'Erreur lors de la mise à jour']);
 }

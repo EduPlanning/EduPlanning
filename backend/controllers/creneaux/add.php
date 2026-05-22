@@ -8,6 +8,7 @@ include_once '../../config/Database.php';
 include_once '../../models/Creneau.php';
 include_once '../../models/Notification.php';
 include_once '../../models/Utilisateur.php';
+include_once '../../models/Enseignant.php';
 
 $database = new Database();
 $db = $database->connect();
@@ -15,8 +16,15 @@ $creneau = new Creneau($db);
 
 $data = json_decode(file_get_contents('php://input'));
 
-if (!isset($data->date_cours, $data->heure_debut, $data->heure_fin,
-           $data->matiere_id, $data->enseignant_id, $data->salle_id, $data->groupe_id)) {
+if (!isset(
+    $data->date_cours,
+    $data->heure_debut,
+    $data->heure_fin,
+    $data->matiere_id,
+    $data->enseignant_id,
+    $data->salle_id,
+    $data->groupe_id
+)) {
     echo json_encode(['message' => 'Données manquantes']);
     exit;
 }
@@ -45,13 +53,18 @@ if (!empty($conflicts)) {
 }
 
 if ($creneau->create()) {
-    // Notify affected users (students in group + teacher)
-    $notif = new Notification($db);
+    // Notify affected users (teacher account linked to the enseignant record)
+    $enseignant = new Enseignant($db);
+    $enseignant->id = $data->enseignant_id;
+    $result = $enseignant->getById();
+    $row = $result->fetch(PDO::FETCH_ASSOC);
 
-    // Notify enseignant
-    $notif->utilisateur_id = $data->enseignant_id; // link via utilisateur_id via enseignant table
-    $notif->message = "Nouveau créneau le {$data->date_cours} de {$data->heure_debut} à {$data->heure_fin}";
-    $notif->create();
+    if ($row && isset($row['utilisateur_id'])) {
+        $notif = new Notification($db);
+        $notif->utilisateur_id = $row['utilisateur_id'];
+        $notif->message = "Nouveau créneau le {$data->date_cours} de {$data->heure_debut} à {$data->heure_fin}";
+        $notif->create();
+    }
 
     echo json_encode(['message' => 'Créneau créé', 'id' => $creneau->id]);
 } else {
