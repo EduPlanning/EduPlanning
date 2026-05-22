@@ -247,14 +247,14 @@ INSERT INTO `matiere` (`nom`, `code`, `volume_horaire`, `coefficient`) VALUES
 ('Mathématiques Appliquées', 'MATH', 40, 2),
 ('Communication et Anglais', 'CA', 30, 1);
 
--- Utilisateurs (admin + enseignants + étudiants)
+-- Utilisateurs (admin + enseignants + étudiants) password: 123456789
 INSERT INTO `utilisateur` (`nom`, `prenom`, `email`, `mot_de_passe`, `role`, `actif`) VALUES
-('Admin', 'Système', 'admin@ecole.ma', '$2y$12$F6qWjgsh6vn7F6J6o1nuGOmWbR9w3otlx19pjHNYIRokXUiktO1pO', 'administrateur', 1),
-('Benali', 'Youssef', 'y.benali@ecole.ma', '$2y$12$F6qWjgsh6vn7F6J6o1nuGOmWbR9w3otlx19pjHNYIRokXUiktO1pO', 'enseignant', 1),
-('Amine', 'Fatima', 'f.amine@ecole.ma', '$2y$12$F6qWjgsh6vn7F6J6o1nuGOmWbR9w3otlx19pjHNYIRokXUiktO1pO', 'enseignant', 1),
-('Idrissi', 'Mohammed', 'm.idrissi@ecole.ma', '$2y$12$F6qWjgsh6vn7F6J6o1nuGOmWbR9w3otlx19pjHNYIRokXUiktO1pO', 'enseignant', 1),
-('Elbouraqqady', 'Nouhaila', 'n.elbouraqqady@ecole.ma', '$2y$12$F6qWjgsh6vn7F6J6o1nuGOmWbR9w3otlx19pjHNYIRokXUiktO1pO', 'etudiant', 1),
-('Tazi', 'Hamza', 'h.tazi@ecole.ma', '$2y$12$F6qWjgsh6vn7F6J6o1nuGOmWbR9w3otlx19pjHNYIRokXUiktO1pO', 'etudiant', 1);
+('Admin', 'Système', 'admin@ecole.ma', '$2y$10$ji5xBThTAzMf1/oYSaN/NOWQEQqIlhShkdc9zUr/jLwTmrkun3z9O', 'administrateur', 1),
+('Benali', 'Youssef', 'y.benali@ecole.ma', '$2y$10$ji5xBThTAzMf1/oYSaN/NOWQEQqIlhShkdc9zUr/jLwTmrkun3z9O', 'enseignant', 1),
+('Amine', 'Fatima', 'f.amine@ecole.ma', '$2y$10$ji5xBThTAzMf1/oYSaN/NOWQEQqIlhShkdc9zUr/jLwTmrkun3z9O', 'enseignant', 1),
+('Idrissi', 'Mohammed', 'm.idrissi@ecole.ma', '$2y$10$ji5xBThTAzMf1/oYSaN/NOWQEQqIlhShkdc9zUr/jLwTmrkun3z9O', 'enseignant', 1),
+('Elbouraqqady', 'Nouhaila', 'n.elbouraqqady@ecole.ma', '$2y$10$ji5xBThTAzMf1/oYSaN/NOWQEQqIlhShkdc9zUr/jLwTmrkun3z9O', 'etudiant', 1),
+('Tazi', 'Hamza', 'h.tazi@ecole.ma', '$2y$10$ji5xBThTAzMf1/oYSaN/NOWQEQqIlhShkdc9zUr/jLwTmrkun3z9O', 'etudiant', 1);
 
 -- Enseignants
 INSERT INTO `enseignant` (`utilisateur_id`, `specialite`) VALUES
