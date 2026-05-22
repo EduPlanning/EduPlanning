@@ -86,6 +86,11 @@
     const user = getUser();
     if (!user) {
         location.replace('../users/login.php');
+        return;
+    }
+    if (user.role !== 'administrateur') {
+        location.replace('../dashboard/index.php');
+        return;
     }
 
     const api = 'http://localhost/emploi_du_temps/backend/controllers/users';

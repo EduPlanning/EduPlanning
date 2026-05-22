@@ -4,6 +4,7 @@
     <div>
         <h1>Tableau de bord</h1>
         <p>Vue d'ensemble du système de gestion des emplois du temps</p>
+        <p id="userRoleLabel" class="text-muted" style="margin-top:.5rem"></p>
     </div>
     <div id="adminActions" style="display:none">
         <a href="../planning/index.php" class="btn btn-primary">
@@ -118,6 +119,16 @@
         if (!user) {
             location.replace('../users/login.php');
             return;
+        }
+
+        const roleLabel = document.getElementById('userRoleLabel');
+        if (roleLabel) {
+            const roleNames = {
+                administrateur: 'Administrateur',
+                enseignant: 'Enseignant',
+                etudiant: 'Étudiant'
+            };
+            roleLabel.textContent = `Connecté en tant que : ${roleNames[user.role] || user.role}`;
         }
 
         if (user.role === 'administrateur') {
