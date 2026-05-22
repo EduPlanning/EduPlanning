@@ -22,10 +22,5 @@ $user->nom         = $data->nom;
 $user->prenom      = $data->prenom;
 $user->email       = $data->email;
 $user->mot_de_passe = $data->mot_de_passe;
-$user->role        = 'etudiant';
-
-if ($user->register()) {
-    echo json_encode(['message' => 'Compte créé', 'id' => $user->id]);
-} else {
-    echo json_encode(['message' => 'Erreur lors de la création du compte']);
-}
+// Public registration disabled: student accounts must be created by an enseignant
+echo json_encode(['message' => 'Inscription publique désactivée. Demandez à un enseignant de créer le compte étudiant.']);

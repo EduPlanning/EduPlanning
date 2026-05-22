@@ -27,11 +27,13 @@ CREATE TABLE `utilisateur` (
   `prenom`     VARCHAR(100) NOT NULL,
   `email`      VARCHAR(200) NOT NULL,
   `mot_de_passe` VARCHAR(255) NOT NULL,
+  `groupe_id`  INT(11)      DEFAULT NULL,
   `role`       ENUM('administrateur','enseignant','etudiant') NOT NULL DEFAULT 'etudiant',
   `actif`      TINYINT(1)   NOT NULL DEFAULT 1,
   `cree_le`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`)
+  ,KEY `groupe_id` (`groupe_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
@@ -168,6 +170,11 @@ ALTER TABLE `enseignant`
     FOREIGN KEY (`utilisateur_id`) REFERENCES `utilisateur` (`id`)
     ON DELETE CASCADE ON UPDATE CASCADE;
 
+ALTER TABLE `utilisateur`
+  ADD CONSTRAINT `fk_utilisateur_groupe`
+    FOREIGN KEY (`groupe_id`) REFERENCES `groupe` (`id`)
+    ON DELETE SET NULL ON UPDATE CASCADE;
+
 ALTER TABLE `creneau`
   ADD CONSTRAINT `fk_creneau_matiere`
     FOREIGN KEY (`matiere_id`) REFERENCES `matiere` (`id`)
@@ -191,6 +198,26 @@ ALTER TABLE `historique`
   ADD CONSTRAINT `fk_historique_utilisateur`
     FOREIGN KEY (`utilisateur_id`) REFERENCES `utilisateur` (`id`)
     ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- --------------------------------------------------------
+-- Table `proposition`
+-- --------------------------------------------------------
+
+CREATE TABLE `proposition` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `auteur_id` INT(11) NOT NULL,
+  `resource` VARCHAR(100) NOT NULL,
+  `action` VARCHAR(20) NOT NULL,
+  `cible_id` INT(11) DEFAULT NULL,
+  `payload` JSON NOT NULL,
+  `status` ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+  `cree_le` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `auteur_id` (`auteur_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+ALTER TABLE `proposition`
+  ADD CONSTRAINT `fk_proposition_auteur` FOREIGN KEY (`auteur_id`) REFERENCES `utilisateur`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- --------------------------------------------------------
 -- Données de démo
@@ -222,12 +249,12 @@ INSERT INTO `matiere` (`nom`, `code`, `volume_horaire`, `coefficient`) VALUES
 
 -- Utilisateurs (admin + enseignants + étudiants)
 INSERT INTO `utilisateur` (`nom`, `prenom`, `email`, `mot_de_passe`, `role`, `actif`) VALUES
-('Admin', 'Système', 'admin@ecole.ma', '$2y$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'administrateur', 1),
-('Benali', 'Youssef', 'y.benali@ecole.ma', '$2y$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'enseignant', 1),
-('Amine', 'Fatima', 'f.amine@ecole.ma', '$2y$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'enseignant', 1),
-('Idrissi', 'Mohammed', 'm.idrissi@ecole.ma', '$2y$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'enseignant', 1),
-('Elbouraqqady', 'Nouhaila', 'n.elbouraqqady@ecole.ma', '$2y$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'etudiant', 1),
-('Tazi', 'Hamza', 'h.tazi@ecole.ma', '$2y$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'etudiant', 1);
+('Admin', 'Système', 'admin@ecole.ma', '$2y$12$F6qWjgsh6vn7F6J6o1nuGOmWbR9w3otlx19pjHNYIRokXUiktO1pO', 'administrateur', 1),
+('Benali', 'Youssef', 'y.benali@ecole.ma', '$2y$12$F6qWjgsh6vn7F6J6o1nuGOmWbR9w3otlx19pjHNYIRokXUiktO1pO', 'enseignant', 1),
+('Amine', 'Fatima', 'f.amine@ecole.ma', '$2y$12$F6qWjgsh6vn7F6J6o1nuGOmWbR9w3otlx19pjHNYIRokXUiktO1pO', 'enseignant', 1),
+('Idrissi', 'Mohammed', 'm.idrissi@ecole.ma', '$2y$12$F6qWjgsh6vn7F6J6o1nuGOmWbR9w3otlx19pjHNYIRokXUiktO1pO', 'enseignant', 1),
+('Elbouraqqady', 'Nouhaila', 'n.elbouraqqady@ecole.ma', '$2y$12$F6qWjgsh6vn7F6J6o1nuGOmWbR9w3otlx19pjHNYIRokXUiktO1pO', 'etudiant', 1),
+('Tazi', 'Hamza', 'h.tazi@ecole.ma', '$2y$12$F6qWjgsh6vn7F6J6o1nuGOmWbR9w3otlx19pjHNYIRokXUiktO1pO', 'etudiant', 1);
 
 -- Enseignants
 INSERT INTO `enseignant` (`utilisateur_id`, `specialite`) VALUES

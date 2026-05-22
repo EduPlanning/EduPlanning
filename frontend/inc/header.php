@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -13,6 +14,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <title>EduPlanning — Gestion Emploi du Temps</title>
 </head>
+
 <body id="body-pd">
 
     <header class="header" id="header">
@@ -40,7 +42,9 @@
             <span>Notifications</span>
             <button onclick="markNotifRead()">Tout marquer lu</button>
         </div>
-        <div id="notifList"><p class="notif_empty">Aucune notification</p></div>
+        <div id="notifList">
+            <p class="notif_empty">Aucune notification</p>
+        </div>
     </div>
 
     <div class="l-navbar" id="nav-bar">
@@ -59,6 +63,10 @@
                         <i class='bx bx-calendar nav_icon'></i>
                         <span class="nav_name">Emploi du Temps</span>
                     </a>
+                    <a href="../enseignants/create_student.php" class="nav_link nav_teacher_only">
+                        <i class='bx bx-user-plus nav_icon'></i>
+                        <span class="nav_name">Créer étudiant</span>
+                    </a>
                     <a href="../ressources/salles.php" class="nav_link nav_admin_only">
                         <i class='bx bx-building nav_icon'></i>
                         <span class="nav_name">Salles</span>
@@ -70,6 +78,10 @@
                     <a href="../ressources/groupes.php" class="nav_link nav_admin_only">
                         <i class='bx bx-group nav_icon'></i>
                         <span class="nav_name">Groupes</span>
+                    </a>
+                    <a href="../dashboard/proposals.php" class="nav_link nav_admin_only">
+                        <i class='bx bx-send nav_icon'></i>
+                        <span class="nav_name">Propositions</span>
                     </a>
                     <a href="../ressources/utilisateurs.php" class="nav_link nav_admin_only">
                         <i class='bx bx-user nav_icon'></i>

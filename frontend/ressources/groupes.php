@@ -68,8 +68,9 @@
         location.replace('../users/login.php');
         return;
     }
-    if (user.role !== 'administrateur') {
-        location.replace('../dashboard/index.php');
+    // allow enseignants to access; non-admins will submit proposals instead of direct changes
+    if (!user) {
+        location.replace('../users/login.php');
         return;
     }
 
@@ -158,25 +159,67 @@
         }
         if (id) payload.id = id;
 
-        const res = await fetch(`${api}/index.php`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        showAlert(data.message.includes('Erreur') ? 'danger' : 'success', data.message);
-        closeModal('groupeModal');
-        loadGroupes();
+        if (user.role === 'administrateur' || user.role === 'enseignant') {
+            const res = await fetch(`${api}/index.php`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            showAlert(data.message.includes('Erreur') ? 'danger' : 'success', data.message);
+            closeModal('groupeModal');
+            loadGroupes();
+        } else {
+            // submit proposal
+            const prop = {
+                auteur_id: user.id,
+                resource: 'groupe',
+                action: id ? 'update' : 'create',
+                cible_id: id || null,
+                payload
+            };
+            const r = await fetch(`${BASE}/proposals/create.php`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(prop)
+            });
+            const d = await r.json();
+            showAlert('success', d.message || 'Proposition envoyée');
+            closeModal('groupeModal');
+            loadGroupes();
+        }
     }
 
     async function deleteGroupe(id) {
         if (!confirm('Supprimer ce groupe ?')) return;
-        const res = await fetch(`${api}/delete.php?id=${id}`);
-        const data = await res.json();
-        showAlert(data.message.includes('Erreur') ? 'danger' : 'success', data.message);
-        loadGroupes();
+        if (user.role === 'administrateur' || user.role === 'enseignant') {
+            const res = await fetch(`${api}/delete.php?id=${id}`);
+            const data = await res.json();
+            showAlert(data.message.includes('Erreur') ? 'danger' : 'success', data.message);
+            loadGroupes();
+        } else {
+            const prop = {
+                auteur_id: user.id,
+                resource: 'groupe',
+                action: 'delete',
+                cible_id: id,
+                payload: {}
+            };
+            const r = await fetch(`${BASE}/proposals/create.php`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(prop)
+            });
+            const d = await r.json();
+            showAlert('success', d.message || 'Proposition de suppression envoyée');
+            loadGroupes();
+        }
     }
 
     document.getElementById('btnNew').addEventListener('click', openGroupeModal);

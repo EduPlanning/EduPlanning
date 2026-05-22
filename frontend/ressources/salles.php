@@ -71,8 +71,9 @@
         location.replace('../users/login.php');
         return;
     }
-    if (user.role !== 'administrateur') {
-        location.replace('../dashboard/index.php');
+    // allow enseignants to access; non-admins will submit proposals instead of direct changes
+    if (!user) {
+        location.replace('../users/login.php');
         return;
     }
 
@@ -143,25 +144,66 @@
         }
         if (id) payload.id = id;
 
-        const res = await fetch(`${api}/index.php`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        showAlert(data.message === 'Salle créée' || data.message === 'Salle mise à jour' ? 'success' : 'danger', data.message);
-        closeModal('salleModal');
-        loadSalles();
+        if (user.role === 'administrateur' || user.role === 'enseignant') {
+            const res = await fetch(`${api}/index.php`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            showAlert(data.message === 'Salle créée' || data.message === 'Salle mise à jour' ? 'success' : 'danger', data.message);
+            closeModal('salleModal');
+            loadSalles();
+        } else {
+            const prop = {
+                auteur_id: user.id,
+                resource: 'salle',
+                action: id ? 'update' : 'create',
+                cible_id: id || null,
+                payload
+            };
+            const r = await fetch(`${BASE}/proposals/create.php`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(prop)
+            });
+            const d = await r.json();
+            showAlert('success', d.message || 'Proposition envoyée');
+            closeModal('salleModal');
+            loadSalles();
+        }
     }
 
     async function deleteSalle(id) {
         if (!confirm('Supprimer cette salle ?')) return;
-        const res = await fetch(`${api}/delete.php?id=${id}`);
-        const data = await res.json();
-        showAlert(data.message === 'Salle supprimée' ? 'success' : 'danger', data.message);
-        loadSalles();
+        if (user.role === 'administrateur' || user.role === 'enseignant') {
+            const res = await fetch(`${api}/delete.php?id=${id}`);
+            const data = await res.json();
+            showAlert(data.message === 'Salle supprimée' ? 'success' : 'danger', data.message);
+            loadSalles();
+        } else {
+            const prop = {
+                auteur_id: user.id,
+                resource: 'salle',
+                action: 'delete',
+                cible_id: id,
+                payload: {}
+            };
+            const r = await fetch(`${BASE}/proposals/create.php`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(prop)
+            });
+            const d = await r.json();
+            showAlert('success', d.message || 'Proposition de suppression envoyée');
+            loadSalles();
+        }
     }
 
     document.getElementById('btnNew').addEventListener('click', openSalleModal);

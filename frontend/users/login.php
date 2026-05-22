@@ -36,7 +36,7 @@
             </div>
 
             <div class="login-footer">
-                Pas encore de compte ? <a href="./register.php">S'inscrire</a>
+                Pour obtenir un compte, contactez un administrateur.
             </div>
         </div>
     </div>

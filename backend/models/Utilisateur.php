@@ -1,5 +1,6 @@
 <?php
-class Utilisateur {
+class Utilisateur
+{
     public $conn;
 
     public $id;
@@ -9,14 +10,17 @@ class Utilisateur {
     public $mot_de_passe;
     public $role;
     public $actif;
+    public $groupe_id;
     public $cree_le;
 
-    public function __construct($db) {
+    public function __construct($db)
+    {
         $this->conn = $db;
     }
 
     // Register new user
-    public function register() {
+    public function register()
+    {
         $query = 'INSERT INTO utilisateur (nom, prenom, email, mot_de_passe, role)
                   VALUES (:nom, :prenom, :email, :mot_de_passe, :role)';
         $stmt = $this->conn->prepare($query);
@@ -41,7 +45,8 @@ class Utilisateur {
     }
 
     // Login by email + password
-    public function login() {
+    public function login()
+    {
         $query = 'SELECT * FROM utilisateur WHERE email = :email AND actif = 1 LIMIT 1';
         $stmt  = $this->conn->prepare($query);
         $stmt->bindParam(':email', $this->email);
@@ -50,13 +55,14 @@ class Utilisateur {
     }
 
     // Get all users (admin)
-    public function getAll($role = null) {
+    public function getAll($role = null)
+    {
         if ($role) {
-            $query = 'SELECT id, nom, prenom, email, role, actif, cree_le FROM utilisateur WHERE role = :role ORDER BY nom';
+            $query = 'SELECT id, nom, prenom, email, role, actif, groupe_id, cree_le FROM utilisateur WHERE role = :role ORDER BY nom';
             $stmt  = $this->conn->prepare($query);
             $stmt->bindParam(':role', $role);
         } else {
-            $query = 'SELECT id, nom, prenom, email, role, actif, cree_le FROM utilisateur ORDER BY nom';
+            $query = 'SELECT id, nom, prenom, email, role, actif, groupe_id, cree_le FROM utilisateur ORDER BY nom';
             $stmt  = $this->conn->prepare($query);
         }
         $stmt->execute();
@@ -64,8 +70,9 @@ class Utilisateur {
     }
 
     // Get single user
-    public function getById() {
-        $query = 'SELECT id, nom, prenom, email, role, actif, cree_le FROM utilisateur WHERE id = :id LIMIT 1';
+    public function getById()
+    {
+        $query = 'SELECT id, nom, prenom, email, role, actif, groupe_id, cree_le FROM utilisateur WHERE id = :id LIMIT 1';
         $stmt  = $this->conn->prepare($query);
         $stmt->bindParam(':id', $this->id);
         $stmt->execute();
@@ -73,20 +80,23 @@ class Utilisateur {
     }
 
     // Update user
-    public function update() {
-        $query = 'UPDATE utilisateur SET nom=:nom, prenom=:prenom, email=:email, role=:role, actif=:actif WHERE id=:id';
+    public function update()
+    {
+        $query = 'UPDATE utilisateur SET nom=:nom, prenom=:prenom, email=:email, role=:role, actif=:actif, groupe_id=:groupe_id WHERE id=:id';
         $stmt  = $this->conn->prepare($query);
         $stmt->bindParam(':nom',    $this->nom);
         $stmt->bindParam(':prenom', $this->prenom);
         $stmt->bindParam(':email',  $this->email);
         $stmt->bindParam(':role',   $this->role);
+        $stmt->bindParam(':groupe_id', $this->groupe_id);
         $stmt->bindParam(':actif',  $this->actif);
         $stmt->bindParam(':id',     $this->id);
         return $stmt->execute();
     }
 
     // Delete user
-    public function delete() {
+    public function delete()
+    {
         $query = 'DELETE FROM utilisateur WHERE id = :id';
         $stmt  = $this->conn->prepare($query);
         $stmt->bindParam(':id', $this->id);
@@ -94,7 +104,8 @@ class Utilisateur {
     }
 
     // Stats for dashboard
-    public function countByRole($role) {
+    public function countByRole($role)
+    {
         $query = 'SELECT COUNT(*) as total FROM utilisateur WHERE role = :role AND actif = 1';
         $stmt  = $this->conn->prepare($query);
         $stmt->bindParam(':role', $role);

@@ -88,8 +88,9 @@
         location.replace('../users/login.php');
         return;
     }
-    if (user.role !== 'administrateur') {
-        location.replace('../dashboard/index.php');
+    // allow enseignants to access; non-admins will submit proposals instead of direct changes
+    if (!user) {
+        location.replace('../users/login.php');
         return;
     }
 
@@ -169,26 +170,64 @@
                 return;
             }
             payload.mot_de_passe = password;
-            const res = await fetch(`${api}/register.php`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
-            const data = await res.json();
-            showAlert(data.message.includes('Erreur') ? 'danger' : 'success', data.message);
+            if (user.role === 'administrateur' || user.role === 'enseignant') {
+                const res = await fetch(`${api}/register.php`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                showAlert(data.message.includes('Erreur') ? 'danger' : 'success', data.message);
+            } else {
+                const prop = {
+                    auteur_id: user.id,
+                    resource: 'utilisateur',
+                    action: 'create',
+                    cible_id: null,
+                    payload
+                };
+                const r = await fetch(`${BASE}/proposals/create.php`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(prop)
+                });
+                const d = await r.json();
+                showAlert('success', d.message || 'Proposition envoyée');
+            }
         } else {
             payload.id = id;
-            const res = await fetch(`${api}/update.php`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
-            const data = await res.json();
-            showAlert(data.message.includes('Erreur') ? 'danger' : 'success', data.message);
+            if (user.role === 'administrateur' || user.role === 'enseignant') {
+                const res = await fetch(`${api}/update.php`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                showAlert(data.message.includes('Erreur') ? 'danger' : 'success', data.message);
+            } else {
+                const prop = {
+                    auteur_id: user.id,
+                    resource: 'utilisateur',
+                    action: 'update',
+                    cible_id: id,
+                    payload
+                };
+                const r = await fetch(`${BASE}/proposals/create.php`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(prop)
+                });
+                const d = await r.json();
+                showAlert('success', d.message || 'Proposition envoyée');
+            }
         }
         closeModal('userModal');
         loadUsers();

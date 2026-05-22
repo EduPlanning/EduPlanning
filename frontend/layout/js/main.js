@@ -75,6 +75,16 @@ document.addEventListener("DOMContentLoaded", () => {
         .querySelectorAll(".nav_admin_only")
         .forEach((el) => (el.style.display = "none"));
     }
+
+    // Hide teacher-only links for non-teachers (show to enseignant + admin)
+    if (
+      !user ||
+      (user.role !== "enseignant" && user.role !== "administrateur")
+    ) {
+      document
+        .querySelectorAll(".nav_teacher_only")
+        .forEach((el) => (el.style.display = "none"));
+    }
     // Load notifications badge
     loadNotifBadge();
   }
