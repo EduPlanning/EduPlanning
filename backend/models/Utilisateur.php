@@ -21,14 +21,15 @@ class Utilisateur
     // Register new user
     public function register()
     {
-        $query = 'INSERT INTO utilisateur (nom, prenom, email, mot_de_passe, role)
-                  VALUES (:nom, :prenom, :email, :mot_de_passe, :role)';
+        $query = 'INSERT INTO utilisateur (nom, prenom, email, mot_de_passe, role, actif, groupe_id)
+                  VALUES (:nom, :prenom, :email, :mot_de_passe, :role, :actif, :groupe_id)';
         $stmt = $this->conn->prepare($query);
 
-        $this->nom    = htmlspecialchars(strip_tags($this->nom));
-        $this->prenom = htmlspecialchars(strip_tags($this->prenom));
-        $this->email  = htmlspecialchars(strip_tags($this->email));
-        $this->role   = htmlspecialchars(strip_tags($this->role));
+        $this->nom    = htmlspecialchars(strip_tags($this->nom ?? ''));
+        $this->prenom = htmlspecialchars(strip_tags($this->prenom ?? ''));
+        $this->email  = htmlspecialchars(strip_tags($this->email ?? ''));
+        $this->role   = htmlspecialchars(strip_tags($this->role ?? 'etudiant'));
+        $this->actif  = isset($this->actif) ? (int) $this->actif : 1;
         $hash = password_hash($this->mot_de_passe, PASSWORD_BCRYPT, ['cost' => 12]);
 
         $stmt->bindParam(':nom',          $this->nom);
@@ -36,6 +37,8 @@ class Utilisateur
         $stmt->bindParam(':email',        $this->email);
         $stmt->bindParam(':mot_de_passe', $hash);
         $stmt->bindParam(':role',         $this->role);
+        $stmt->bindParam(':actif',        $this->actif);
+        $stmt->bindValue(':groupe_id', $this->groupe_id, $this->groupe_id === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
 
         if ($stmt->execute()) {
             $this->id = $this->conn->lastInsertId();
@@ -84,11 +87,15 @@ class Utilisateur
     {
         $query = 'UPDATE utilisateur SET nom=:nom, prenom=:prenom, email=:email, role=:role, actif=:actif, groupe_id=:groupe_id WHERE id=:id';
         $stmt  = $this->conn->prepare($query);
+        $this->nom    = htmlspecialchars(strip_tags($this->nom ?? ''));
+        $this->prenom = htmlspecialchars(strip_tags($this->prenom ?? ''));
+        $this->email  = htmlspecialchars(strip_tags($this->email ?? ''));
+        $this->role   = htmlspecialchars(strip_tags($this->role ?? ''));
         $stmt->bindParam(':nom',    $this->nom);
         $stmt->bindParam(':prenom', $this->prenom);
         $stmt->bindParam(':email',  $this->email);
         $stmt->bindParam(':role',   $this->role);
-        $stmt->bindParam(':groupe_id', $this->groupe_id);
+        $stmt->bindValue(':groupe_id', $this->groupe_id, $this->groupe_id === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
         $stmt->bindParam(':actif',  $this->actif);
         $stmt->bindParam(':id',     $this->id);
         return $stmt->execute();

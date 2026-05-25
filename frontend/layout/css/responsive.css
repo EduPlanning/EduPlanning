@@ -5,4 +5,5 @@
     .card-header { flex-direction: column; align-items: flex-start; gap: .5rem; }
     .planning-nav h3 { min-width: auto; font-size: .85rem; }
     .week-grid { display: block; overflow-x: auto; }
+    .month-grid { grid-template-columns: 1fr; }
 }

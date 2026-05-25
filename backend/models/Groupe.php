@@ -30,6 +30,8 @@ class Groupe
         $query = 'INSERT INTO `groupe` (nom, niveau, filiere_id, capacite)
                   VALUES (:nom, :niveau, :filiere_id, :capacite)';
         $stmt = $this->conn->prepare($query);
+        $this->nom = htmlspecialchars(strip_tags($this->nom ?? ''));
+        $this->niveau = htmlspecialchars(strip_tags($this->niveau ?? ''));
         $stmt->bindParam(':nom', $this->nom);
         $stmt->bindParam(':niveau', $this->niveau);
         $stmt->bindParam(':filiere_id', $this->filiere_id);
@@ -43,6 +45,8 @@ class Groupe
                   SET nom = :nom, niveau = :niveau, filiere_id = :filiere_id, capacite = :capacite
                   WHERE id = :id';
         $stmt = $this->conn->prepare($query);
+        $this->nom = htmlspecialchars(strip_tags($this->nom ?? ''));
+        $this->niveau = htmlspecialchars(strip_tags($this->niveau ?? ''));
         $stmt->bindParam(':nom', $this->nom);
         $stmt->bindParam(':niveau', $this->niveau);
         $stmt->bindParam(':filiere_id', $this->filiere_id);

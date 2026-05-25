@@ -13,35 +13,37 @@
 <div id="notifAlert"></div>
 <div class="card">
     <div class="card-body" id="notifContainer">
-        <p class="notif_empty">Chargement des notifications…</p>
+        <p class="notif_empty">Chargement des notifications...</p>
     </div>
 </div>
 
 <?php include('../inc/footer.php') ?>
 
 <script>
-    const user = getUser();
-    if (!user) {
+    const currentUser = getUser();
+    if (!currentUser) {
         location.replace('../users/login.php');
     }
 
     async function loadNotificationsPage() {
         const container = document.getElementById('notifContainer');
-        container.innerHTML = '<p class="notif_empty">Chargement des notifications…</p>';
+        container.innerHTML = '<p class="notif_empty">Chargement des notifications...</p>';
+
         try {
-            const res = await fetch(`${BASE}/notifications/index.php?user_id=${user.id}`);
+            const res = await fetch(`${BASE}/notifications/index.php`);
             const data = await res.json();
             if (!data.notifications || data.notifications.length === 0) {
                 container.innerHTML = '<p class="notif_empty">Aucune notification</p>';
                 return;
             }
+
             container.innerHTML = '';
-            data.notifications.forEach(n => {
+            data.notifications.forEach((notification) => {
                 const div = document.createElement('div');
-                div.className = 'notif_item' + (n.lu == 0 ? ' unread' : '');
+                div.className = 'notif_item' + (notification.lu == 0 ? ' unread' : '');
                 div.innerHTML = `
-                <div>${n.message}</div>
-                <div class="notif_item_time">${formatDate(n.cree_le)}</div>`;
+                    <div>${escapeHtml(notification.message)}</div>
+                    <div class="notif_item_time">${formatDate(notification.cree_le)}</div>`;
                 container.appendChild(div);
             });
         } catch (e) {
@@ -57,8 +59,7 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    action: 'mark_read',
-                    user_id: user.id
+                    action: 'mark_read'
                 })
             });
             loadNotificationsPage();

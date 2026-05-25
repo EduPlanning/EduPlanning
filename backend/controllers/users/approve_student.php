@@ -1,12 +1,13 @@
 <?php
-header('Access-Control-Allow-Origin: *');
+include_once '../../config/headers.php';
 header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Methods: POST');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+include_once '../../middleware/auth.php';
+requireRole('administrateur');
 
 include_once '../../config/Database.php';
 include_once '../../models/Utilisateur.php';
 include_once '../../models/Notification.php';
+include_once '../../models/Historique.php';
 
 $database = new Database();
 $db = $database->connect();
@@ -24,6 +25,8 @@ $student_id = intval($data->student_id);
 $q = $db->prepare('UPDATE utilisateur SET actif = 1 WHERE id = :id');
 $q->bindParam(':id', $student_id);
 if ($q->execute()) {
+    $hist = new Historique($db);
+    $hist->log(getCurrentUserId(), 'approve_etudiant', json_encode(['id' => $student_id]));
     // Notify student
     $notif = new Notification($db);
     $notif->utilisateur_id = $student_id;

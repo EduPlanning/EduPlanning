@@ -8,6 +8,7 @@ class Notification {
     public function create() {
         $q = 'INSERT INTO notification (utilisateur_id, message) VALUES (:uid, :msg)';
         $s = $this->conn->prepare($q);
+        $this->message = htmlspecialchars(strip_tags($this->message ?? ''));
         $s->bindParam(':uid', $this->utilisateur_id);
         $s->bindParam(':msg', $this->message);
         return $s->execute();

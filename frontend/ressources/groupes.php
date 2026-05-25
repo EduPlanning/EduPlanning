@@ -11,6 +11,7 @@
 </div>
 
 <div id="alertContainer"></div>
+<div id="readOnlyNote"></div>
 <div class="card">
     <div class="card-body">
         <table class="table full-width" id="tableGroupes">
@@ -42,7 +43,7 @@
             </div>
             <div class="form-group">
                 <label>Niveau</label>
-                <input type="text" id="groupeNiveau" class="form-control" placeholder="Ex. Technicien Spécialisé 1ère année">
+                <input type="text" id="groupeNiveau" class="form-control">
             </div>
             <div class="form-group">
                 <label>Filière</label>
@@ -63,20 +64,27 @@
 <?php include('../inc/footer.php') ?>
 
 <script>
-    const user = getUser();
-    if (!user) {
+    const currentUser = getUser();
+    if (!currentUser) {
         location.replace('../users/login.php');
-        return;
     }
-    // allow enseignants to access; non-admins will submit proposals instead of direct changes
-    if (!user) {
-        location.replace('../users/login.php');
-        return;
+    if (currentUser?.role === 'etudiant') {
+        alert('Accès réservé aux enseignants.');
+        location.replace('../planning/index.php');
     }
 
+    const canManageGroupes = currentUser?.role === 'enseignant';
     const api = 'http://localhost/emploi_du_temps/backend/controllers/groupes';
     const filiereApi = 'http://localhost/emploi_du_temps/backend/controllers/filieres';
     let filieres = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (!canManageGroupes) {
+            document.getElementById('btnNew').style.display = 'none';
+            document.getElementById('readOnlyNote').innerHTML = '<div class="alert alert-info">Lecture seule pour les administrateurs. Les modifications des groupes sont réservées aux enseignants.</div>';
+        }
+        await loadGroupes();
+    });
 
     async function loadGroupes() {
         const [res, filRes] = await Promise.all([
@@ -85,41 +93,40 @@
         ]);
         const groupes = await res.json();
         filieres = await filRes.json();
+
         const tbody = document.querySelector('#tableGroupes tbody');
         tbody.innerHTML = '';
-        groupes.forEach(g => {
+        groupes.forEach((groupe) => {
             const row = document.createElement('tr');
             row.innerHTML = `
-            <td>${g.nom}</td>
-            <td>${g.niveau}</td>
-            <td>${g.filiere_nom || '—'}</td>
-            <td>${g.capacite}</td>
-            <td class="text-right">
-                <button class="btn btn-outline btn-sm" onclick="editGroupe(${g.id})"><i class='bx bx-edit'></i></button>
-                <button class="btn btn-danger btn-sm" onclick="deleteGroupe(${g.id})"><i class='bx bx-trash'></i></button>
-            </td>`;
+                <td>${escapeHtml(groupe.nom)}</td>
+                <td>${escapeHtml(groupe.niveau)}</td>
+                <td>${escapeHtml(groupe.filiere_nom || '-')}</td>
+                <td>${escapeHtml(groupe.capacite)}</td>
+                <td class="text-right">${canManageGroupes ? `
+                    <button class="btn btn-outline btn-sm" onclick="editGroupe(${groupe.id})"><i class='bx bx-edit'></i></button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteGroupe(${groupe.id})"><i class='bx bx-trash'></i></button>` : ''}</td>`;
             tbody.appendChild(row);
         });
+
         fillFilieres();
     }
 
     function fillFilieres() {
         const select = document.getElementById('groupeFiliere');
         select.innerHTML = '<option value="">Sélectionner une filière</option>';
-        filieres.forEach(f => {
+        filieres.forEach((filiere) => {
             const option = document.createElement('option');
-            option.value = f.id;
-            option.textContent = `${f.nom} (${f.code})`;
+            option.value = filiere.id;
+            option.textContent = `${filiere.nom} (${filiere.code})`;
             select.appendChild(option);
         });
     }
 
-    function showAlert(type, message) {
-        const container = document.getElementById('alertContainer');
-        container.innerHTML = `<div class="alert alert-${type}"><i class="bx ${type === 'success' ? 'bx-check-circle' : 'bx-x-circle'}"></i> ${message}</div>`;
-    }
-
     function openGroupeModal() {
+        if (!canManageGroupes) {
+            return;
+        }
         document.getElementById('groupeId').value = '';
         document.getElementById('modalTitle').textContent = 'Nouveau groupe';
         document.getElementById('groupeNom').value = '';
@@ -130,10 +137,13 @@
     }
 
     function editGroupe(id) {
+        if (!canManageGroupes) {
+            return;
+        }
         fetch(`${api}/index.php`)
-            .then(r => r.json())
-            .then(groupes => {
-                const groupe = groupes.find(x => x.id == id);
+            .then((response) => response.json())
+            .then((groupes) => {
+                const groupe = groupes.find((item) => item.id == id);
                 if (!groupe) return;
                 document.getElementById('groupeId').value = groupe.id;
                 document.getElementById('modalTitle').textContent = 'Modifier le groupe';
@@ -146,6 +156,10 @@
     }
 
     async function saveGroupe() {
+        if (!canManageGroupes) {
+            return;
+        }
+
         const id = document.getElementById('groupeId').value;
         const payload = {
             nom: document.getElementById('groupeNom').value.trim(),
@@ -153,76 +167,38 @@
             filiere_id: document.getElementById('groupeFiliere').value,
             capacite: parseInt(document.getElementById('groupeCapacite').value, 10)
         };
+
         if (!payload.nom || !payload.niveau || !payload.filiere_id) {
-            showAlert('danger', 'Le nom, le niveau et la filière sont requis.');
+            showAlert(document.getElementById('alertContainer'), 'danger', 'Le nom, le niveau et la filière sont requis.');
             return;
         }
+
         if (id) payload.id = id;
 
-        if (user.role === 'administrateur' || user.role === 'enseignant') {
-            const res = await fetch(`${api}/index.php`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
-            const data = await res.json();
-            showAlert(data.message.includes('Erreur') ? 'danger' : 'success', data.message);
-            closeModal('groupeModal');
-            loadGroupes();
-        } else {
-            // submit proposal
-            const prop = {
-                auteur_id: user.id,
-                resource: 'groupe',
-                action: id ? 'update' : 'create',
-                cible_id: id || null,
-                payload
-            };
-            const r = await fetch(`${BASE}/proposals/create.php`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(prop)
-            });
-            const d = await r.json();
-            showAlert('success', d.message || 'Proposition envoyée');
-            closeModal('groupeModal');
-            loadGroupes();
-        }
+        const res = await fetch(`${api}/index.php`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        showAlert(document.getElementById('alertContainer'), data.message === 'Erreur' ? 'danger' : 'success', data.message);
+        closeModal('groupeModal');
+        loadGroupes();
     }
 
     async function deleteGroupe(id) {
-        if (!confirm('Supprimer ce groupe ?')) return;
-        if (user.role === 'administrateur' || user.role === 'enseignant') {
-            const res = await fetch(`${api}/delete.php?id=${id}`);
-            const data = await res.json();
-            showAlert(data.message.includes('Erreur') ? 'danger' : 'success', data.message);
-            loadGroupes();
-        } else {
-            const prop = {
-                auteur_id: user.id,
-                resource: 'groupe',
-                action: 'delete',
-                cible_id: id,
-                payload: {}
-            };
-            const r = await fetch(`${BASE}/proposals/create.php`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(prop)
-            });
-            const d = await r.json();
-            showAlert('success', d.message || 'Proposition de suppression envoyée');
-            loadGroupes();
+        if (!canManageGroupes || !confirm('Supprimer ce groupe ?')) {
+            return;
         }
+
+        const res = await fetch(`${api}/delete.php?id=${id}`);
+        const data = await res.json();
+        showAlert(document.getElementById('alertContainer'), data.message.includes('Erreur') ? 'danger' : 'success', data.message);
+        loadGroupes();
     }
 
     document.getElementById('btnNew').addEventListener('click', openGroupeModal);
     document.getElementById('btnSaveGroupe').addEventListener('click', saveGroupe);
-    loadGroupes();
 </script>

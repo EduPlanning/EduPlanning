@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <title>EduPlanning — Gestion Emploi du Temps</title>
+    <title>EduPlanning - Gestion Emploi du Temps</title>
 </head>
 
 <body id="body-pd">
@@ -31,12 +31,11 @@
             </div>
             <div class="header_user" id="headerUser">
                 <i class='bx bx-user-circle'></i>
-                <span id="headerUserName">—</span>
+                <span id="headerUserName">-</span>
             </div>
         </div>
     </header>
 
-    <!-- Notifications dropdown -->
     <div class="notif_panel" id="notifPanel" style="display:none">
         <div class="notif_panel_header">
             <span>Notifications</span>
@@ -67,25 +66,33 @@
                         <i class='bx bx-user-plus nav_icon'></i>
                         <span class="nav_name">Créer étudiant</span>
                     </a>
-                    <a href="../ressources/salles.php" class="nav_link nav_admin_only">
-                        <i class='bx bx-building nav_icon'></i>
-                        <span class="nav_name">Salles</span>
+                    <a href="../ressources/groupes.php" class="nav_link nav_teacher_only">
+                        <i class='bx bx-group nav_icon'></i>
+                        <span class="nav_name">Groupes</span>
                     </a>
-                    <a href="../ressources/matieres.php" class="nav_link nav_admin_only">
+                    <a href="../ressources/matieres.php" class="nav_link nav_teacher_only">
                         <i class='bx bx-book nav_icon'></i>
                         <span class="nav_name">Matières</span>
                     </a>
-                    <a href="../ressources/groupes.php" class="nav_link nav_admin_only">
-                        <i class='bx bx-group nav_icon'></i>
-                        <span class="nav_name">Groupes</span>
+                    <a href="../ressources/salles.php" class="nav_link nav_teacher_only">
+                        <i class='bx bx-building nav_icon'></i>
+                        <span class="nav_name">Salles</span>
                     </a>
                     <a href="../dashboard/proposals.php" class="nav_link nav_admin_only">
                         <i class='bx bx-send nav_icon'></i>
                         <span class="nav_name">Propositions</span>
                     </a>
+                    <a href="../dashboard/validate_requests.php" class="nav_link nav_admin_only">
+                        <i class='bx bx-check-shield nav_icon'></i>
+                        <span class="nav_name">Validations</span>
+                    </a>
                     <a href="../ressources/utilisateurs.php" class="nav_link nav_admin_only">
                         <i class='bx bx-user nav_icon'></i>
                         <span class="nav_name">Utilisateurs</span>
+                    </a>
+                    <a href="../ressources/filieres.php" class="nav_link nav_admin_only">
+                        <i class='bx bx-sitemap nav_icon'></i>
+                        <span class="nav_name">Filières</span>
                     </a>
                     <a href="../notifications/index.php" class="nav_link">
                         <i class='bx bx-bell nav_icon'></i>

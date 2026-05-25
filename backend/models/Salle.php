@@ -26,6 +26,8 @@ class Salle
         $query = 'INSERT INTO salle (nom, capacite, equipements, disponible)
                   VALUES (:nom, :capacite, :equipements, :disponible)';
         $stmt = $this->conn->prepare($query);
+        $this->nom = htmlspecialchars(strip_tags($this->nom ?? ''));
+        $this->equipements = htmlspecialchars(strip_tags($this->equipements ?? ''));
         $stmt->bindParam(':nom', $this->nom);
         $stmt->bindParam(':capacite', $this->capacite);
         $stmt->bindParam(':equipements', $this->equipements);
@@ -37,6 +39,8 @@ class Salle
     {
         $query = 'UPDATE salle SET nom = :nom, capacite = :capacite, equipements = :equipements, disponible = :disponible WHERE id = :id';
         $stmt = $this->conn->prepare($query);
+        $this->nom = htmlspecialchars(strip_tags($this->nom ?? ''));
+        $this->equipements = htmlspecialchars(strip_tags($this->equipements ?? ''));
         $stmt->bindParam(':nom', $this->nom);
         $stmt->bindParam(':capacite', $this->capacite);
         $stmt->bindParam(':equipements', $this->equipements);

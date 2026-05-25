@@ -1,7 +1,8 @@
 <?php
-header('Access-Control-Allow-Origin: *');
+include_once '../../config/headers.php';
 header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Methods: GET');
+include_once '../../middleware/auth.php';
+requireRole('administrateur');
 
 include_once '../../config/Database.php';
 

@@ -86,12 +86,10 @@
     const user = getUser();
     if (!user) {
         location.replace('../users/login.php');
-        return;
     }
-    // allow enseignants to access; non-admins will submit proposals instead of direct changes
-    if (!user) {
-        location.replace('../users/login.php');
-        return;
+    if (user?.role !== 'administrateur') {
+        alert('Accès réservé aux administrateurs.');
+        location.replace('../dashboard/index.php');
     }
 
     const api = 'http://localhost/emploi_du_temps/backend/controllers/users';
@@ -102,25 +100,25 @@
         users = await res.json();
         const tbody = document.querySelector('#tableUsers tbody');
         tbody.innerHTML = '';
-        users.forEach(u => {
+        users.forEach((item) => {
             const row = document.createElement('tr');
             row.innerHTML = `
-            <td>${u.nom}</td>
-            <td>${u.prenom}</td>
-            <td>${u.email}</td>
-            <td>${u.role}</td>
-            <td>${u.actif == 1 ? 'Oui' : 'Non'}</td>
-            <td class="text-right">
-                <button class="btn btn-outline btn-sm" onclick="editUser(${u.id})"><i class='bx bx-edit'></i></button>
-                <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id})"><i class='bx bx-trash'></i></button>
-            </td>`;
+                <td>${escapeHtml(item.nom)}</td>
+                <td>${escapeHtml(item.prenom)}</td>
+                <td>${escapeHtml(item.email)}</td>
+                <td>${roleBadge(item.role)}</td>
+                <td>${item.actif == 1 ? 'Oui' : 'Non'}</td>
+                <td class="text-right">
+                    <button class="btn btn-outline btn-sm" onclick="editUser(${item.id})"><i class='bx bx-edit'></i></button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteUser(${item.id})"><i class='bx bx-trash'></i></button>
+                </td>`;
             tbody.appendChild(row);
         });
     }
 
-    function showAlert(type, message) {
+    function showLocalAlert(type, message) {
         const container = document.getElementById('alertContainer');
-        container.innerHTML = `<div class="alert alert-${type}"><i class="bx ${type === 'success' ? 'bx-check-circle' : 'bx-x-circle'}"></i> ${message}</div>`;
+        container.innerHTML = `<div class="alert alert-${type}"><i class="bx ${type === 'success' ? 'bx-check-circle' : 'bx-x-circle'}"></i> ${escapeHtml(message)}</div>`;
     }
 
     function openUserModal() {
@@ -131,21 +129,21 @@
         document.getElementById('userEmail').value = '';
         document.getElementById('userPassword').value = '';
         document.getElementById('userRole').value = 'etudiant';
-        document.getElementById('userActif').value = 1;
+        document.getElementById('userActif').value = '1';
         document.getElementById('passwordGroup').style.display = 'block';
         openModal('userModal');
     }
 
     function editUser(id) {
-        const u = users.find(x => x.id == id);
-        if (!u) return;
-        document.getElementById('userId').value = u.id;
+        const selectedUser = users.find((item) => item.id == id);
+        if (!selectedUser) return;
+        document.getElementById('userId').value = selectedUser.id;
         document.getElementById('modalTitle').textContent = 'Modifier l\'utilisateur';
-        document.getElementById('userNom').value = u.nom;
-        document.getElementById('userPrenom').value = u.prenom;
-        document.getElementById('userEmail').value = u.email;
-        document.getElementById('userRole').value = u.role;
-        document.getElementById('userActif').value = u.actif;
+        document.getElementById('userNom').value = selectedUser.nom;
+        document.getElementById('userPrenom').value = selectedUser.prenom;
+        document.getElementById('userEmail').value = selectedUser.email;
+        document.getElementById('userRole').value = selectedUser.role;
+        document.getElementById('userActif').value = selectedUser.actif;
         document.getElementById('passwordGroup').style.display = 'none';
         openModal('userModal');
     }
@@ -159,76 +157,34 @@
             role: document.getElementById('userRole').value,
             actif: parseInt(document.getElementById('userActif').value, 10)
         };
+
         if (!payload.nom || !payload.prenom || !payload.email) {
-            showAlert('danger', 'Nom, prénom et email sont requis.');
+            showLocalAlert('danger', 'Nom, prénom et email sont requis.');
             return;
         }
+
+        let endpoint = `${api}/register.php`;
         if (!id) {
             const password = document.getElementById('userPassword').value;
             if (!password) {
-                showAlert('danger', 'Le mot de passe est requis pour un nouvel utilisateur.');
+                showLocalAlert('danger', 'Le mot de passe est requis pour un nouvel utilisateur.');
                 return;
             }
             payload.mot_de_passe = password;
-            if (user.role === 'administrateur' || user.role === 'enseignant') {
-                const res = await fetch(`${api}/register.php`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                showAlert(data.message.includes('Erreur') ? 'danger' : 'success', data.message);
-            } else {
-                const prop = {
-                    auteur_id: user.id,
-                    resource: 'utilisateur',
-                    action: 'create',
-                    cible_id: null,
-                    payload
-                };
-                const r = await fetch(`${BASE}/proposals/create.php`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(prop)
-                });
-                const d = await r.json();
-                showAlert('success', d.message || 'Proposition envoyée');
-            }
         } else {
+            endpoint = `${api}/update.php`;
             payload.id = id;
-            if (user.role === 'administrateur' || user.role === 'enseignant') {
-                const res = await fetch(`${api}/update.php`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                showAlert(data.message.includes('Erreur') ? 'danger' : 'success', data.message);
-            } else {
-                const prop = {
-                    auteur_id: user.id,
-                    resource: 'utilisateur',
-                    action: 'update',
-                    cible_id: id,
-                    payload
-                };
-                const r = await fetch(`${BASE}/proposals/create.php`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(prop)
-                });
-                const d = await r.json();
-                showAlert('success', d.message || 'Proposition envoyée');
-            }
         }
+
+        const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        showLocalAlert(data.message.includes('Erreur') ? 'danger' : 'success', data.message);
         closeModal('userModal');
         loadUsers();
     }
@@ -237,7 +193,7 @@
         if (!confirm('Supprimer cet utilisateur ?')) return;
         const res = await fetch(`${api}/delete.php?id=${id}`);
         const data = await res.json();
-        showAlert(data.message.includes('Erreur') ? 'danger' : 'success', data.message);
+        showLocalAlert(data.message.includes('Erreur') ? 'danger' : 'success', data.message);
         loadUsers();
     }
 

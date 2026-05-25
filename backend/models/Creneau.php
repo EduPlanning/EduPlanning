@@ -21,12 +21,13 @@ class Creneau {
 
     // Get all creneaux with joined data
     public function getAll($filters = []) {
-        $query = "SELECT c.id, c.date_cours, c.heure_debut, c.heure_fin, c.type, c.recurrent,
-                         m.nom AS matiere_nom, m.code AS matiere_code,
-                         CONCAT(u.prenom,' ',u.nom) AS enseignant_nom,
-                         s.nom AS salle_nom,
-                         g.nom AS groupe_nom
-                  FROM creneau c
+        $query = "SELECT c.id, c.date_cours, c.heure_debut, c.heure_fin, c.type, c.recurrent, c.freq_recurrence, c.date_fin_recurrence,
+                          c.matiere_id, c.enseignant_id, c.salle_id, c.groupe_id,
+                          m.nom AS matiere_nom, m.code AS matiere_code,
+                          CONCAT(u.prenom,' ',u.nom) AS enseignant_nom,
+                          s.nom AS salle_nom,
+                          g.nom AS groupe_nom
+                   FROM creneau c
                   LEFT JOIN matiere    m ON c.matiere_id    = m.id
                   LEFT JOIN enseignant e ON c.enseignant_id = e.id
                   LEFT JOIN utilisateur u ON e.utilisateur_id = u.id
@@ -119,6 +120,8 @@ class Creneau {
         $query = 'INSERT INTO creneau (date_cours, heure_debut, heure_fin, matiere_id, enseignant_id, salle_id, groupe_id, type, recurrent, freq_recurrence, date_fin_recurrence)
                   VALUES (:date_cours, :heure_debut, :heure_fin, :matiere_id, :enseignant_id, :salle_id, :groupe_id, :type, :recurrent, :freq_recurrence, :date_fin_recurrence)';
         $stmt = $this->conn->prepare($query);
+        $this->type = htmlspecialchars(strip_tags($this->type ?? ''));
+        $this->freq_recurrence = htmlspecialchars(strip_tags($this->freq_recurrence ?? ''));
         $stmt->bindParam(':date_cours',           $this->date_cours);
         $stmt->bindParam(':heure_debut',          $this->heure_debut);
         $stmt->bindParam(':heure_fin',            $this->heure_fin);
@@ -143,6 +146,7 @@ class Creneau {
                   matiere_id=:matiere_id, enseignant_id=:enseignant_id, salle_id=:salle_id,
                   groupe_id=:groupe_id, type=:type WHERE id=:id';
         $stmt = $this->conn->prepare($query);
+        $this->type = htmlspecialchars(strip_tags($this->type ?? ''));
         $stmt->bindParam(':date_cours',    $this->date_cours);
         $stmt->bindParam(':heure_debut',   $this->heure_debut);
         $stmt->bindParam(':heure_fin',     $this->heure_fin);
@@ -193,6 +197,20 @@ class Creneau {
                   LEFT JOIN creneau c ON c.salle_id = s.id
                   GROUP BY s.id, s.nom
                   ORDER BY heures_total DESC";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        return $stmt;
+    }
+
+    public function repartitionFilieres() {
+        $query = "SELECT f.id, f.nom AS filiere, f.code,
+                         COUNT(c.id) AS nb_creneaux,
+                         ROUND(COALESCE(SUM(TIMESTAMPDIFF(MINUTE, c.heure_debut, c.heure_fin)), 0) / 60, 2) AS heures_total
+                  FROM filiere f
+                  LEFT JOIN `groupe` g ON g.filiere_id = f.id
+                  LEFT JOIN creneau c ON c.groupe_id = g.id
+                  GROUP BY f.id, f.nom, f.code
+                  ORDER BY heures_total DESC, f.nom ASC";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
         return $stmt;

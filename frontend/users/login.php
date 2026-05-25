@@ -34,6 +34,9 @@
             <div class="login-actions">
                 <button class="btn btn-primary" id="btnLogin"><i class='bx bx-log-in'></i> Se connecter</button>
             </div>
+            <div style="text-align:center;margin-top:0.5rem">
+                <a href="forgot_password.php" style="font-size:0.9rem">Mot de passe oublié ?</a>
+            </div>
 
             <div class="login-footer">
                 Pour obtenir un compte, contactez un administrateur.

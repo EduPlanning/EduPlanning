@@ -3,7 +3,7 @@
 <div class="page-header">
     <div>
         <h1>Salles</h1>
-        <p>Gérez les salles et équipements disponibles.</p>
+        <p>Ressources physiques utilisées pour les créneaux.</p>
     </div>
     <div>
         <button class="btn btn-primary" id="btnNew"><i class='bx bx-plus'></i> Nouvelle salle</button>
@@ -11,6 +11,7 @@
 </div>
 
 <div id="alertContainer"></div>
+<div id="readOnlyNote"></div>
 <div class="card">
     <div class="card-body">
         <table class="table full-width" id="tableSalles">
@@ -66,45 +67,47 @@
 <?php include('../inc/footer.php') ?>
 
 <script>
-    const user = getUser();
-    if (!user) {
+    const currentUser = getUser();
+    if (!currentUser) {
         location.replace('../users/login.php');
-        return;
     }
-    // allow enseignants to access; non-admins will submit proposals instead of direct changes
-    if (!user) {
-        location.replace('../users/login.php');
-        return;
+    if (currentUser?.role === 'etudiant') {
+        alert('Accès réservé aux enseignants.');
+        location.replace('../planning/index.php');
     }
 
+    const canManageSalles = currentUser?.role === 'enseignant';
     const api = 'http://localhost/emploi_du_temps/backend/controllers/salles';
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (!canManageSalles) {
+            document.getElementById('btnNew').style.display = 'none';
+            document.getElementById('readOnlyNote').innerHTML = '<div class="alert alert-info">Lecture seule pour les administrateurs. Les modifications des salles sont réservées aux enseignants.</div>';
+        }
+        await loadSalles();
+    });
 
     async function loadSalles() {
         const res = await fetch(`${api}/index.php`);
         const salles = await res.json();
         const tbody = document.querySelector('#tableSalles tbody');
         tbody.innerHTML = '';
-        salles.forEach(s => {
+        salles.forEach((salle) => {
             const row = document.createElement('tr');
             row.innerHTML = `
-            <td>${s.nom}</td>
-            <td>${s.capacite}</td>
-            <td>${s.equipements || '—'}</td>
-            <td>${s.disponible == 1 ? 'Oui' : 'Non'}</td>
-            <td class="text-right">
-                <button class="btn btn-outline btn-sm" onclick="editSalle(${s.id})"><i class='bx bx-edit'></i></button>
-                <button class="btn btn-danger btn-sm" onclick="deleteSalle(${s.id})"><i class='bx bx-trash'></i></button>
-            </td>`;
+                <td>${escapeHtml(salle.nom)}</td>
+                <td>${escapeHtml(salle.capacite)}</td>
+                <td>${escapeHtml(salle.equipements || '-')}</td>
+                <td>${salle.disponible == 1 ? 'Oui' : 'Non'}</td>
+                <td class="text-right">${canManageSalles ? `
+                    <button class="btn btn-outline btn-sm" onclick="editSalle(${salle.id})"><i class='bx bx-edit'></i></button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteSalle(${salle.id})"><i class='bx bx-trash'></i></button>` : ''}</td>`;
             tbody.appendChild(row);
         });
     }
 
-    function showAlert(type, message) {
-        const container = document.getElementById('alertContainer');
-        container.innerHTML = `<div class="alert alert-${type}"><i class="bx ${type === 'success' ? 'bx-check-circle' : 'bx-x-circle'}"></i> ${message}</div>`;
-    }
-
     function openSalleModal() {
+        if (!canManageSalles) return;
         document.getElementById('salleId').value = '';
         document.getElementById('modalTitle').textContent = 'Nouvelle salle';
         document.getElementById('salleNom').value = '';
@@ -115,10 +118,11 @@
     }
 
     function editSalle(id) {
+        if (!canManageSalles) return;
         fetch(`${api}/index.php`)
-            .then(r => r.json())
-            .then(salles => {
-                const salle = salles.find(x => x.id == id);
+            .then((response) => response.json())
+            .then((salles) => {
+                const salle = salles.find((item) => item.id == id);
                 if (!salle) return;
                 document.getElementById('salleId').value = salle.id;
                 document.getElementById('modalTitle').textContent = 'Modifier la salle';
@@ -131,6 +135,8 @@
     }
 
     async function saveSalle() {
+        if (!canManageSalles) return;
+
         const id = document.getElementById('salleId').value;
         const payload = {
             nom: document.getElementById('salleNom').value.trim(),
@@ -138,75 +144,35 @@
             equipements: document.getElementById('salleEquipements').value.trim(),
             disponible: parseInt(document.getElementById('salleDisponible').value, 10)
         };
+
         if (!payload.nom) {
-            showAlert('danger', 'Le nom de la salle est requis.');
+            showAlert(document.getElementById('alertContainer'), 'danger', 'Le nom de la salle est requis.');
             return;
         }
+
         if (id) payload.id = id;
 
-        if (user.role === 'administrateur' || user.role === 'enseignant') {
-            const res = await fetch(`${api}/index.php`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
-            const data = await res.json();
-            showAlert(data.message === 'Salle créée' || data.message === 'Salle mise à jour' ? 'success' : 'danger', data.message);
-            closeModal('salleModal');
-            loadSalles();
-        } else {
-            const prop = {
-                auteur_id: user.id,
-                resource: 'salle',
-                action: id ? 'update' : 'create',
-                cible_id: id || null,
-                payload
-            };
-            const r = await fetch(`${BASE}/proposals/create.php`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(prop)
-            });
-            const d = await r.json();
-            showAlert('success', d.message || 'Proposition envoyée');
-            closeModal('salleModal');
-            loadSalles();
-        }
+        const res = await fetch(`${api}/index.php`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        showAlert(document.getElementById('alertContainer'), data.message === 'Erreur' ? 'danger' : 'success', data.message);
+        closeModal('salleModal');
+        loadSalles();
     }
 
     async function deleteSalle(id) {
-        if (!confirm('Supprimer cette salle ?')) return;
-        if (user.role === 'administrateur' || user.role === 'enseignant') {
-            const res = await fetch(`${api}/delete.php?id=${id}`);
-            const data = await res.json();
-            showAlert(data.message === 'Salle supprimée' ? 'success' : 'danger', data.message);
-            loadSalles();
-        } else {
-            const prop = {
-                auteur_id: user.id,
-                resource: 'salle',
-                action: 'delete',
-                cible_id: id,
-                payload: {}
-            };
-            const r = await fetch(`${BASE}/proposals/create.php`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(prop)
-            });
-            const d = await r.json();
-            showAlert('success', d.message || 'Proposition de suppression envoyée');
-            loadSalles();
-        }
+        if (!canManageSalles || !confirm('Supprimer cette salle ?')) return;
+        const res = await fetch(`${api}/delete.php?id=${id}`);
+        const data = await res.json();
+        showAlert(document.getElementById('alertContainer'), data.message.includes('Erreur') ? 'danger' : 'success', data.message);
+        loadSalles();
     }
 
     document.getElementById('btnNew').addEventListener('click', openSalleModal);
     document.getElementById('btnSaveSalle').addEventListener('click', saveSalle);
-    loadSalles();
 </script>

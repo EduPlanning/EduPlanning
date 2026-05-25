@@ -72,28 +72,30 @@ Le projet a pour principaux objectifs :
 
 | **Acteur**         | **Description**                                                        |
 | ------------------ | ---------------------------------------------------------------------- |
-| **Administrateur** | Gère l'ensemble des paramètres, utilisateurs et ressources du système. |
-| **Enseignant**     | Consulte son planning, peut soumettre des demandes de modification.    |
+| **Administrateur** | Gère les utilisateurs et filières, valide les demandes et consulte les statistiques. |
+| **Enseignant**     | Consulte son planning, gère les créneaux et ressources pédagogiques, crée des étudiants. |
 | **Étudiant**       | Consulte l'emploi du temps de son groupe, reçoit les notifications.    |
-| **Visiteur**       | Accède à un planning public en lecture seule (si activé).              |
+| **Visiteur**       | Rôle non implémenté dans la version actuelle.                          |
 
 ## 3.2 Cas d'utilisation principaux
 
 ### 3.2.1 Administrateur
 
 - Créer / modifier / supprimer des comptes utilisateurs.
-- Configurer les années académiques, semestres, filières.
-- Gérer les ressources (salles, capacités, équipements).
-- Créer et valider les emplois du temps.
-- Résoudre les conflits détectés par le système.
+- Gérer les filières et paramètres académiques.
+- Valider les comptes étudiants créés par les enseignants.
+- Valider ou rejeter les propositions soumises pour revue.
+- Consulter le planning en lecture seule et le tableau de bord.
 - Consulter les rapports et statistiques.
 
 ### 3.2.2 Enseignant
 
 - Consulter son emploi du temps personnel.
-- Signaler une indisponibilité ou demander un échange de créneau.
+- Créer, modifier, supprimer et déplacer des créneaux.
+- Gérer les groupes, matières et salles nécessaires à la planification.
+- Créer des comptes étudiants en attente de validation administrateur.
 - Recevoir des notifications de modification.
-- Exporter son planning au format PDF ou iCal.
+- Exporter son planning au format PDF, Excel ou iCal.
 
 ### 3.2.3 Étudiant
 
@@ -106,8 +108,8 @@ Le projet a pour principaux objectifs :
 
 ## 4.1 Module d'authentification
 
-- Inscription avec validation par e-mail.
-- Connexion sécurisée (JWT ou sessions côté serveur).
+- Inscription publique désactivée : les comptes étudiants sont créés par les enseignants puis validés par un administrateur.
+- Connexion sécurisée via session PHP côté serveur.
 - Gestion des rôles (RBAC - Role-Based Access Control).
 - Réinitialisation de mot de passe par lien sécurisé.
 - Protection contre les attaques par force brute (rate limiting).
@@ -124,14 +126,14 @@ Le projet a pour principaux objectifs :
 
 - Notification par e-mail lors de toute modification d'un créneau concernant l'utilisateur.
 - Notification in-app avec badge et centre de notifications.
-- Paramétrage des préférences de notification par utilisateur.
+- Paramétrage des préférences non implémenté dans cette version.
 
 ## 4.4 Module de rapports et exports
 
 - Export de l'emploi du temps au format PDF (mise en page A4 hebdomadaire).
 - Export au format Excel (.xlsx) pour traitement externe.
 - Export au format iCal (.ics) pour intégration dans des agendas (Google, Outlook).
-- Tableau de bord avec graphiques : taux d'occupation des salles, répartition horaire par matière.
+- Tableau de bord avec graphiques : taux d'occupation des salles, répartition horaire par filière.
 
 # 5\. Exigences Non Fonctionnelles
 
@@ -151,24 +153,24 @@ Le projet a pour principaux objectifs :
 
 | **Couche**               | **Technologie**        | **Justification**                                       |
 | ------------------------ | ---------------------- | ------------------------------------------------------- |
-| **Frontend**             | React.js + TypeScript  | Composants réutilisables, typage fort, large écosystème |
-| **Styling**              | Tailwind CSS           | Utilitaire, responsive, personnalisable                 |
-| **Calendrier UI**        | FullCalendar.js        | Bibliothèque spécialisée, drag & drop natif             |
-| **Backend**              | Node.js + Express.js   | Léger, performant, JavaScript full-stack                |
-| **Base de données**      | MySQL / PostgreSQL     | SGBD relationnel, requêtes complexes                    |
-| **ORM**                  | Sequelize / Prisma     | Abstraction BDD, migrations, typage                     |
-| **Authentification**     | JWT + Bcrypt           | Stateless, sécurisé, scalable                           |
-| **Notifications e-mail** | Nodemailer + SMTP      | Envoi fiable de mails transactionnels                   |
+| **Frontend**             | HTML + CSS + Vanilla JS | Intégration simple, légère et suffisante pour le PFE    |
+| **Styling**              | CSS personnalisé        | Contrôle total sur l'interface et responsive natif      |
+| **Calendrier UI**        | Grille calendrier maison | Compatible avec le besoin jour / semaine / mois         |
+| **Backend**              | PHP natif               | Déploiement simple sous XAMPP, logique serveur claire   |
+| **Base de données**      | MySQL                   | SGBD relationnel utilisé par l'application              |
+| **Accès aux données**    | PDO                     | API native PHP, requêtes préparées sécurisées           |
+| **Authentification**     | Sessions PHP + Bcrypt   | Sécurisé, simple à maintenir dans cette architecture    |
+| **Notifications e-mail** | mail() PHP + journal local | Suffisant pour la version PFE, extensible vers SMTP   |
 | **Hébergement**          | VPS / Railway / Render | Déploiement simple pour PFE                             |
 
 ## 6.2 Architecture applicative
 
-L'application suivra une architecture en couches MVC (Modèle - Vue - Contrôleur) côté serveur, couplée à une architecture de composants côté client :
+L'application suit une architecture MVC légère côté serveur, couplée à des pages PHP rendues côté client avec enrichissement JavaScript :
 
-- Couche Présentation : React SPA communiquant avec le backend via une API REST.
-- Couche Métier : Contrôleurs Express gérant les règles de gestion (conflits, autorisations).
-- Couche Données : ORM Prisma / Sequelize avec un SGBD relationnel.
-- Couche Sécurité : Middleware JWT, validation des entrées (Joi / Zod), CORS configuré.
+- Couche Présentation : pages PHP, HTML, CSS et scripts Vanilla JS.
+- Couche Métier : contrôleurs PHP organisés par module (auth, créneaux, ressources, statistiques).
+- Couche Données : modèles PHP utilisant PDO et requêtes préparées sur MySQL.
+- Couche Sécurité : middleware de session, contrôle des rôles, validation d'entrées et en-têtes HTTP.
 
 ## 6.3 Modèle de données (entités principales)
 
@@ -238,11 +240,11 @@ Le projet sera conduit selon une approche Agile / Scrum adaptée au contexte aca
 ## 9.1 Mesures de sécurité
 
 - Hachage des mots de passe avec bcrypt (facteur de coût ≥ 12).
-- Tokens JWT avec durée de vie limitée et mécanisme de refresh token.
+- Session PHP sécurisée avec cookie HttpOnly et SameSite.
 - Validation stricte de toutes les entrées utilisateur (XSS, injection SQL).
-- Protection CSRF (Cross-Site Request Forgery) sur les formulaires.
+- Protection CSRF à renforcer dans une itération future.
 - Configuration HTTPS obligatoire en production.
-- En-têtes de sécurité HTTP via Helmet.js (CSP, X-Frame-Options, etc.).
+- En-têtes de sécurité HTTP gérés côté PHP (CSP, X-Frame-Options, etc.).
 - Journalisation des actions sensibles (connexions, modifications de planning).
 
 ## 9.2 Gestion des données personnelles

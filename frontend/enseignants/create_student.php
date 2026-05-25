@@ -3,7 +3,7 @@
 <div class="page-header">
     <div>
         <h1>Créer un étudiant</h1>
-        <p>Créez un compte étudiant (sera en attente de validation par un administrateur)</p>
+        <p>Le compte sera créé inactif puis validé par un administrateur.</p>
     </div>
 </div>
 
@@ -27,12 +27,12 @@
         </div>
         <div class="form-group">
             <label>Mot de passe</label>
-            <input type="password" id="password" class="form-control" placeholder="Min. 8 caractères">
+            <input type="password" id="password" class="form-control" placeholder="Minimum 8 caractères">
         </div>
         <div class="form-group">
             <label>Groupe</label>
             <select id="groupeSelect" class="form-control">
-                <option value="">— Aucun —</option>
+                <option value="">- Aucun -</option>
             </select>
         </div>
 
@@ -43,74 +43,86 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
         const user = getUser();
         if (!user) return location.replace('../users/login.php');
-        if (user.role !== 'enseignant' && user.role !== 'administrateur') {
+        if (user.role !== 'enseignant') {
             document.body.innerHTML = '<div style="padding:2rem">Accès refusé</div>';
             return;
         }
 
-        document.getElementById('btnCreate').addEventListener('click', async () => {
-            const nom = document.getElementById('nom').value.trim();
-            const prenom = document.getElementById('prenom').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            const alertBox = document.getElementById('alertContainer');
-            alertBox.innerHTML = '';
-
-            if (!nom || !prenom || !email || !password) {
-                showAlert(alertBox, 'warning', 'Remplissez tous les champs.');
-                return;
-            }
-
-            const btn = document.getElementById('btnCreate');
-            btn.disabled = true;
-
-            try {
-                // load groupes
-                const gres = await fetch(`${BASE}/groupes/index.php`);
-                const groupes = await gres.json();
-                const sel = document.getElementById('groupeSelect');
-                if (Array.isArray(groupes)) {
-                    groupes.forEach(g => {
-                        const opt = document.createElement('option');
-                        opt.value = g.id;
-                        opt.textContent = g.nom;
-                        sel.appendChild(opt);
-                    });
-                }
-
-                const res = await fetch(`${BASE}/users/create_student.php`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        nom,
-                        prenom,
-                        email,
-                        mot_de_passe: password,
-                        enseignant_utilisateur_id: user.id,
-                        groupe_id: document.getElementById('groupeSelect').value || null
-                    })
-                });
-                const data = await res.json();
-                if (data.id) {
-                    showAlert(alertBox, 'success', 'Étudiant créé, en attente de validation.');
-                    document.getElementById('nom').value = '';
-                    document.getElementById('prenom').value = '';
-                    document.getElementById('email').value = '';
-                    document.getElementById('password').value = '';
-                } else {
-                    showAlert(alertBox, 'danger', data.message || 'Erreur');
-                }
-            } catch (e) {
-                showAlert(alertBox, 'danger', 'Erreur réseau.');
-            }
-            btn.disabled = false;
-        });
+        await loadGroupes();
+        document.getElementById('btnCreate').addEventListener('click', createStudent);
     });
+
+    async function loadGroupes() {
+        const res = await fetch(`${BASE}/groupes/index.php`);
+        const groupes = await res.json();
+        const select = document.getElementById('groupeSelect');
+        select.innerHTML = '<option value="">- Aucun -</option>';
+        if (Array.isArray(groupes)) {
+            groupes.forEach((groupe) => {
+                const option = document.createElement('option');
+                option.value = groupe.id;
+                option.textContent = groupe.nom;
+                select.appendChild(option);
+            });
+        }
+    }
+
+    async function createStudent() {
+        const nom = document.getElementById('nom').value.trim();
+        const prenom = document.getElementById('prenom').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const groupe_id = document.getElementById('groupeSelect').value || null;
+        const alertBox = document.getElementById('alertContainer');
+        alertBox.innerHTML = '';
+
+        if (!nom || !prenom || !email || !password) {
+            showAlert(alertBox, 'warning', 'Remplissez tous les champs.');
+            return;
+        }
+
+        if (password.length < 8) {
+            showAlert(alertBox, 'warning', 'Le mot de passe doit contenir au moins 8 caractères.');
+            return;
+        }
+
+        const btn = document.getElementById('btnCreate');
+        btn.disabled = true;
+
+        try {
+            const res = await fetch(`${BASE}/users/create_student.php`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    nom,
+                    prenom,
+                    email,
+                    mot_de_passe: password,
+                    groupe_id
+                })
+            });
+            const data = await res.json();
+            if (data.id) {
+                showAlert(alertBox, 'success', 'Étudiant créé, en attente de validation.');
+                document.getElementById('nom').value = '';
+                document.getElementById('prenom').value = '';
+                document.getElementById('email').value = '';
+                document.getElementById('password').value = '';
+                document.getElementById('groupeSelect').value = '';
+            } else {
+                showAlert(alertBox, 'danger', data.message || 'Erreur');
+            }
+        } catch (e) {
+            showAlert(alertBox, 'danger', 'Erreur réseau.');
+        }
+
+        btn.disabled = false;
+    }
 </script>
 
 <?php include('../inc/footer.php') ?>

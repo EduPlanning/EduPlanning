@@ -1,11 +1,12 @@
 <?php
-header('Access-Control-Allow-Origin: *');
+include_once '../../config/headers.php';
 header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Methods: DELETE, GET');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+include_once '../../middleware/auth.php';
+requireRole('administrateur');
 
 include_once '../../config/Database.php';
 include_once '../../models/Utilisateur.php';
+include_once '../../models/Historique.php';
 
 $database = new Database();
 $db = $database->connect();
@@ -19,7 +20,9 @@ if ($user->id < 1) {
 }
 
 if ($user->delete()) {
+    $hist = new Historique($db);
+    $hist->log(getCurrentUserId(), 'delete_utilisateur', json_encode(['id' => $user->id]));
     echo json_encode(['message' => 'Utilisateur supprimé']);
 } else {
-    echo json_encode(['message' => 'Erreur suppression']);
+    echo json_encode(['message' => 'Erreur lors de la suppression']);
 }

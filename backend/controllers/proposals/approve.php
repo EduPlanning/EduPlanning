@@ -1,10 +1,12 @@
 <?php
-header('Access-Control-Allow-Origin: *');
+include_once '../../config/headers.php';
 header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Methods: POST');
+include_once '../../middleware/auth.php';
+requireRole('administrateur');
 
 include_once '../../config/Database.php';
 include_once '../../models/Notification.php';
+include_once '../../models/Historique.php';
 
 $database = new Database();
 $db = $database->connect();
@@ -197,6 +199,8 @@ if ($q->execute()) {
         $notif->message = $msg;
         $notif->create();
     }
+    $hist = new Historique($db);
+    $hist->log(getCurrentUserId(), 'approve_proposal', json_encode(['id' => $pid, 'status' => $status, 'resource' => $proposal['resource']]));
     echo json_encode(['message' => 'Mise à jour effectuée', 'applied' => $applyMsg]);
 } else {
     echo json_encode(['message' => 'Erreur lors de la mise à jour']);

@@ -12,6 +12,8 @@ class Matiere {
     public function create() {
         $q = 'INSERT INTO matiere (nom, code, volume_horaire, coefficient) VALUES (:nom, :code, :volume_horaire, :coefficient)';
         $s = $this->conn->prepare($q);
+        $this->nom = htmlspecialchars(strip_tags($this->nom ?? ''));
+        $this->code = htmlspecialchars(strip_tags($this->code ?? ''));
         $s->bindParam(':nom',           $this->nom);
         $s->bindParam(':code',          $this->code);
         $s->bindParam(':volume_horaire',$this->volume_horaire);
@@ -21,6 +23,8 @@ class Matiere {
     public function update() {
         $q = 'UPDATE matiere SET nom=:nom, code=:code, volume_horaire=:volume_horaire, coefficient=:coefficient WHERE id=:id';
         $s = $this->conn->prepare($q);
+        $this->nom = htmlspecialchars(strip_tags($this->nom ?? ''));
+        $this->code = htmlspecialchars(strip_tags($this->code ?? ''));
         $s->bindParam(':nom',$this->nom); $s->bindParam(':code',$this->code);
         $s->bindParam(':volume_horaire',$this->volume_horaire); $s->bindParam(':coefficient',$this->coefficient);
         $s->bindParam(':id',$this->id);
