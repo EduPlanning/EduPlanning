@@ -144,18 +144,22 @@ class Creneau {
     public function update() {
         $query = 'UPDATE creneau SET date_cours=:date_cours, heure_debut=:heure_debut, heure_fin=:heure_fin,
                   matiere_id=:matiere_id, enseignant_id=:enseignant_id, salle_id=:salle_id,
-                  groupe_id=:groupe_id, type=:type WHERE id=:id';
+                  groupe_id=:groupe_id, type=:type, recurrent=:recurrent, freq_recurrence=:freq_recurrence, date_fin_recurrence=:date_fin_recurrence WHERE id=:id';
         $stmt = $this->conn->prepare($query);
         $this->type = htmlspecialchars(strip_tags($this->type ?? ''));
-        $stmt->bindParam(':date_cours',    $this->date_cours);
-        $stmt->bindParam(':heure_debut',   $this->heure_debut);
-        $stmt->bindParam(':heure_fin',     $this->heure_fin);
-        $stmt->bindParam(':matiere_id',    $this->matiere_id);
-        $stmt->bindParam(':enseignant_id', $this->enseignant_id);
-        $stmt->bindParam(':salle_id',      $this->salle_id);
-        $stmt->bindParam(':groupe_id',     $this->groupe_id);
-        $stmt->bindParam(':type',          $this->type);
-        $stmt->bindParam(':id',            $this->id);
+        $this->freq_recurrence = htmlspecialchars(strip_tags($this->freq_recurrence ?? ''));
+        $stmt->bindParam(':date_cours',           $this->date_cours);
+        $stmt->bindParam(':heure_debut',          $this->heure_debut);
+        $stmt->bindParam(':heure_fin',            $this->heure_fin);
+        $stmt->bindParam(':matiere_id',           $this->matiere_id);
+        $stmt->bindParam(':enseignant_id',        $this->enseignant_id);
+        $stmt->bindParam(':salle_id',             $this->salle_id);
+        $stmt->bindParam(':groupe_id',            $this->groupe_id);
+        $stmt->bindParam(':type',                 $this->type);
+        $stmt->bindParam(':recurrent',            $this->recurrent);
+        $stmt->bindParam(':freq_recurrence',      $this->freq_recurrence);
+        $stmt->bindParam(':date_fin_recurrence',  $this->date_fin_recurrence);
+        $stmt->bindParam(':id',                   $this->id);
         return $stmt->execute();
     }
 

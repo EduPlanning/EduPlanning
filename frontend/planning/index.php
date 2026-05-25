@@ -500,7 +500,9 @@
                     showAlert(document.getElementById('alertContainer'), 'danger', data.message || 'Conflit détecté');
                     return;
                 }
-                showAlert(document.getElementById('alertContainer'), 'success', data.message || 'Créneau déplacé');
+                const msg = data.message || 'Créneau déplacé';
+                const isError = /erreur|invalide|manquant/i.test(msg);
+                showAlert(document.getElementById('alertContainer'), isError ? 'danger' : 'success', msg);
                 renderCurrentView();
             });
         });
@@ -609,6 +611,12 @@
             date_fin_recurrence: document.getElementById('dateFinRecurrence').value || null
         };
 
+        if (!payload.date_cours || !payload.heure_debut || !payload.heure_fin ||
+            !payload.matiere_id || !payload.enseignant_id || !payload.salle_id || !payload.groupe_id) {
+            showAlert(document.getElementById('alertContainer'), 'danger', 'Veuillez sélectionner une matière, un enseignant, une salle et un groupe.');
+            return;
+        }
+
         document.getElementById('conflictAlert').style.display = 'none';
         if (id) payload.id = id;
 
@@ -628,19 +636,28 @@
             return;
         }
 
+        const msg = data.message || 'Opération effectuée';
+        const isError = /erreur|invalide|manquant|données/i.test(msg);
         closeModal('creneauModal');
-        showAlert(document.getElementById('alertContainer'), data.message.includes('Erreur') ? 'danger' : 'success', data.message);
+        showAlert(document.getElementById('alertContainer'), isError ? 'danger' : 'success', msg);
         renderCurrentView();
     }
 
     async function deleteCreneau(id) {
         if (!canManagePlanning || !confirm('Supprimer ce créneau ?')) return;
 
-        const res = await fetch(`${BASE}/creneaux/delete.php?id=${id}`);
-        const data = await res.json();
-        closeModal('detailModal');
-        showAlert(document.getElementById('alertContainer'), data.message.includes('Erreur') ? 'danger' : 'success', data.message);
-        renderCurrentView();
+        try {
+            const res = await fetch(`${BASE}/creneaux/delete.php?id=${id}`);
+            const data = await res.json();
+            closeModal('detailModal');
+            const msg = data.message || 'Opération effectuée';
+            const isError = /erreur/i.test(msg);
+            showAlert(document.getElementById('alertContainer'), isError ? 'danger' : 'success', msg);
+            renderCurrentView();
+        } catch (e) {
+            closeModal('detailModal');
+            showAlert(document.getElementById('alertContainer'), 'danger', 'Erreur lors de la suppression');
+        }
     }
 
     function toggleRecurrence() {
@@ -665,20 +682,26 @@
         const targetStart = prompt('Date de début cible (YYYY-MM-DD)', toISO(addDays(range.start, 180)));
         if (!targetStart) return;
 
-        const res = await fetch(`${BASE}/creneaux/duplicate.php`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                source_start: sourceStart,
-                source_end: sourceEnd,
-                target_start: targetStart
-            })
-        });
-        const data = await res.json();
-        showAlert(document.getElementById('alertContainer'), data.message.includes('Erreur') ? 'danger' : 'success', data.message);
-        renderCurrentView();
+        try {
+            const res = await fetch(`${BASE}/creneaux/duplicate.php`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    source_start: sourceStart,
+                    source_end: sourceEnd,
+                    target_start: targetStart
+                })
+            });
+            const data = await res.json();
+            const msg = data.message || 'Opération effectuée';
+            const isError = /erreur|invalide/i.test(msg);
+            showAlert(document.getElementById('alertContainer'), isError ? 'danger' : 'success', msg);
+            renderCurrentView();
+        } catch (e) {
+            showAlert(document.getElementById('alertContainer'), 'danger', 'Erreur lors de la duplication');
+        }
     }
 
     function startOfDay(date) {
@@ -750,15 +773,4 @@
         return date.toLocaleDateString('fr-MA', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
     }
 
-    async function duplicateSemester() {
-        if (!confirm('Dupliquer tout l\'emploi du temps actuel pour le semestre suivant (+~6 mois) ?\n(Créneaux seront copiés avec dates shiftées)')) return;
-        try {
-            const r = await fetch(`${BASE}/creneaux/duplicate.php?offset=180`, { method: 'POST' });
-            const d = await r.json();
-            alert(d.message || 'Duplication effectuée');
-            renderWeek();
-        } catch (e) {
-            alert('Erreur lors de la duplication');
-        }
-    }
 </script>

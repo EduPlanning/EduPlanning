@@ -34,14 +34,24 @@ if (!isValidDateValue($data->date_cours) || !isValidTimeValue($data->heure_debut
     exit;
 }
 
-$creneau->id = (int) $data->id;
+$id = (int)($data->id ?? 0);
+$matiereId = (int)($data->matiere_id ?? 0);
+$enseignantId = (int)($data->enseignant_id ?? 0);
+$salleId = (int)($data->salle_id ?? 0);
+$groupeId = (int)($data->groupe_id ?? 0);
+if ($id <= 0 || $matiereId <= 0 || $enseignantId <= 0 || $salleId <= 0 || $groupeId <= 0) {
+    echo json_encode(['message' => 'ID et Matière, enseignant, salle et groupe sont requis'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+$creneau->id = $id;
 $creneau->date_cours = $data->date_cours;
 $creneau->heure_debut = strlen($data->heure_debut) === 5 ? $data->heure_debut . ':00' : $data->heure_debut;
 $creneau->heure_fin = strlen($data->heure_fin) === 5 ? $data->heure_fin . ':00' : $data->heure_fin;
-$creneau->matiere_id = (int) $data->matiere_id;
-$creneau->enseignant_id = (int) $data->enseignant_id;
-$creneau->salle_id = (int) $data->salle_id;
-$creneau->groupe_id = (int) $data->groupe_id;
+$creneau->matiere_id = $matiereId;
+$creneau->enseignant_id = $enseignantId;
+$creneau->salle_id = $salleId;
+$creneau->groupe_id = $groupeId;
 $creneau->type = $data->type ?? 'cours';
 $creneau->recurrent = isset($data->recurrent) ? (int) $data->recurrent : 0;
 $creneau->freq_recurrence = $data->freq_recurrence ?? null;
@@ -58,15 +68,20 @@ if (!$creneau->update()) {
     exit;
 }
 
-$hist = new Historique($db);
-$hist->log(getCurrentUserId(), 'update_creneau', json_encode(['id' => (int) $creneau->id], JSON_UNESCAPED_UNICODE));
+// Side effects (history + email notification) must never prevent returning clean JSON to the client.
+try {
+    $hist = new Historique($db);
+    $hist->log(getCurrentUserId(), 'update_creneau', json_encode(['id' => (int) $creneau->id], JSON_UNESCAPED_UNICODE));
 
-$emailQuery = $db->prepare('SELECT u.email FROM utilisateur u JOIN enseignant e ON e.utilisateur_id = u.id WHERE e.id = :eid LIMIT 1');
-$emailQuery->bindParam(':eid', $creneau->enseignant_id);
-$emailQuery->execute();
-$email = $emailQuery->fetchColumn();
-if ($email) {
-    sendEmail($email, 'Créneau modifié - EduPlanning', "Un créneau a été mis à jour dans votre planning (ID {$creneau->id}). Vérifiez les détails.");
+    $emailQuery = $db->prepare('SELECT u.email FROM utilisateur u JOIN enseignant e ON e.utilisateur_id = u.id WHERE e.id = :eid LIMIT 1');
+    $emailQuery->bindParam(':eid', $creneau->enseignant_id);
+    $emailQuery->execute();
+    $email = $emailQuery->fetchColumn();
+    if ($email) {
+        sendEmail($email, 'Créneau modifié - EduPlanning', "Un créneau a été mis à jour dans votre planning (ID {$creneau->id}). Vérifiez les détails.");
+    }
+} catch (Exception $e) {
+    // Side effect failure (e.g. logs dir permissions, historique constraint) must not break the UI response.
 }
 
 echo json_encode(['message' => 'Créneau mis à jour'], JSON_UNESCAPED_UNICODE);

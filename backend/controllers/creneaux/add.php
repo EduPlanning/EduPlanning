@@ -36,14 +36,23 @@ if (!isValidDateValue($data->date_cours) || !isValidTimeValue($data->heure_debut
     exit;
 }
 
+$matiereId = (int)($data->matiere_id ?? 0);
+$enseignantId = (int)($data->enseignant_id ?? 0);
+$salleId = (int)($data->salle_id ?? 0);
+$groupeId = (int)($data->groupe_id ?? 0);
+if ($matiereId <= 0 || $enseignantId <= 0 || $salleId <= 0 || $groupeId <= 0) {
+    echo json_encode(['message' => 'Matière, enseignant, salle et groupe sont requis'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 $creneau->id = 0;
 $creneau->date_cours = $data->date_cours;
 $creneau->heure_debut = strlen($data->heure_debut) === 5 ? $data->heure_debut . ':00' : $data->heure_debut;
 $creneau->heure_fin = strlen($data->heure_fin) === 5 ? $data->heure_fin . ':00' : $data->heure_fin;
-$creneau->matiere_id = (int) $data->matiere_id;
-$creneau->enseignant_id = (int) $data->enseignant_id;
-$creneau->salle_id = (int) $data->salle_id;
-$creneau->groupe_id = (int) $data->groupe_id;
+$creneau->matiere_id = $matiereId;
+$creneau->enseignant_id = $enseignantId;
+$creneau->salle_id = $salleId;
+$creneau->groupe_id = $groupeId;
 $creneau->type = $data->type ?? 'cours';
 $creneau->recurrent = isset($data->recurrent) ? (int) $data->recurrent : 0;
 $creneau->freq_recurrence = $data->freq_recurrence ?? null;
@@ -60,30 +69,37 @@ if (!$creneau->create()) {
     exit;
 }
 
-$enseignant = new Enseignant($db);
-$enseignant->id = $creneau->enseignant_id;
-$row = $enseignant->getById()->fetch(PDO::FETCH_ASSOC);
+// Side effects (notifications, email log, history) must never break the JSON response to the client.
+// Any exception here (e.g. FS permission on logs, historque FK, etc.) is swallowed so the creneau creation always succeeds for the UI.
+try {
+    $enseignant = new Enseignant($db);
+    $enseignant->id = $creneau->enseignant_id;
+    $row = $enseignant->getById()->fetch(PDO::FETCH_ASSOC);
 
-if ($row && isset($row['utilisateur_id'])) {
-    $notif = new Notification($db);
-    $notif->utilisateur_id = (int) $row['utilisateur_id'];
-    $notif->message = "Nouveau créneau le {$creneau->date_cours} de {$creneau->heure_debut} à {$creneau->heure_fin}";
-    $notif->create();
+    if ($row && isset($row['utilisateur_id'])) {
+        $notif = new Notification($db);
+        $notif->utilisateur_id = (int) $row['utilisateur_id'];
+        $notif->message = "Nouveau créneau le {$creneau->date_cours} de {$creneau->heure_debut} à {$creneau->heure_fin}";
+        $notif->create();
 
-    $emailQuery = $db->prepare('SELECT email FROM utilisateur WHERE id = :uid');
-    $emailQuery->bindParam(':uid', $row['utilisateur_id']);
-    $emailQuery->execute();
-    $email = $emailQuery->fetchColumn();
-    if ($email) {
-        sendEmail($email, 'Nouveau créneau planifié - EduPlanning', "Bonjour,\n\nUn nouveau créneau a été ajouté à votre planning :\nDate: {$creneau->date_cours}\nHeure: {$creneau->heure_debut} - {$creneau->heure_fin}\n\nVérifiez votre emploi du temps.");
+        $emailQuery = $db->prepare('SELECT email FROM utilisateur WHERE id = :uid');
+        $emailQuery->bindParam(':uid', $row['utilisateur_id']);
+        $emailQuery->execute();
+        $email = $emailQuery->fetchColumn();
+        if ($email) {
+            sendEmail($email, 'Nouveau créneau planifié - EduPlanning', "Bonjour,\n\nUn nouveau créneau a été ajouté à votre planning :\nDate: {$creneau->date_cours}\nHeure: {$creneau->heure_debut} - {$creneau->heure_fin}\n\nVérifiez votre emploi du temps.");
+        }
     }
-}
 
-$hist = new Historique($db);
-$hist->log(getCurrentUserId(), 'create_creneau', json_encode([
-    'id' => (int) $creneau->id,
-    'date' => $creneau->date_cours
-], JSON_UNESCAPED_UNICODE));
+    $hist = new Historique($db);
+    $hist->log(getCurrentUserId(), 'create_creneau', json_encode([
+        'id' => (int) $creneau->id,
+        'date' => $creneau->date_cours
+    ], JSON_UNESCAPED_UNICODE));
+} catch (Exception $e) {
+    // Silently ignore side-effect failures; the main creneau was created successfully.
+    // In production you could error_log($e->getMessage());
+}
 
 echo json_encode(['message' => 'Créneau créé', 'id' => (int) $creneau->id], JSON_UNESCAPED_UNICODE);
 ?>
