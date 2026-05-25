@@ -74,11 +74,11 @@ class Creneau {
                  AND c.id != :id
                  AND (c.heure_debut < :heure_fin AND c.heure_fin > :heure_debut)";
         $s1 = $this->conn->prepare($q1);
-        $s1->bindParam(':enseignant_id', $this->enseignant_id);
-        $s1->bindParam(':date_cours',    $this->date_cours);
-        $s1->bindParam(':id',            $this->id ?? 0);
-        $s1->bindParam(':heure_fin',     $this->heure_fin);
-        $s1->bindParam(':heure_debut',   $this->heure_debut);
+        $s1->bindValue(':enseignant_id', $this->enseignant_id);
+        $s1->bindValue(':date_cours',    $this->date_cours);
+        $s1->bindValue(':id',            (int)($this->id ?? 0));
+        $s1->bindValue(':heure_fin',     $this->heure_fin);
+        $s1->bindValue(':heure_debut',   $this->heure_debut);
         $s1->execute();
         if ($s1->rowCount() > 0) $conflicts[] = 'enseignant';
 
@@ -89,11 +89,11 @@ class Creneau {
                  AND c.id != :id
                  AND (c.heure_debut < :heure_fin AND c.heure_fin > :heure_debut)";
         $s2 = $this->conn->prepare($q2);
-        $s2->bindParam(':salle_id',    $this->salle_id);
-        $s2->bindParam(':date_cours',  $this->date_cours);
-        $s2->bindParam(':id',          $this->id ?? 0);
-        $s2->bindParam(':heure_fin',   $this->heure_fin);
-        $s2->bindParam(':heure_debut', $this->heure_debut);
+        $s2->bindValue(':salle_id',    $this->salle_id);
+        $s2->bindValue(':date_cours',  $this->date_cours);
+        $s2->bindValue(':id',          (int)($this->id ?? 0));
+        $s2->bindValue(':heure_fin',   $this->heure_fin);
+        $s2->bindValue(':heure_debut', $this->heure_debut);
         $s2->execute();
         if ($s2->rowCount() > 0) $conflicts[] = 'salle';
 
@@ -104,11 +104,11 @@ class Creneau {
                  AND c.id != :id
                  AND (c.heure_debut < :heure_fin AND c.heure_fin > :heure_debut)";
         $s3 = $this->conn->prepare($q3);
-        $s3->bindParam(':groupe_id',   $this->groupe_id);
-        $s3->bindParam(':date_cours',  $this->date_cours);
-        $s3->bindParam(':id',          $this->id ?? 0);
-        $s3->bindParam(':heure_fin',   $this->heure_fin);
-        $s3->bindParam(':heure_debut', $this->heure_debut);
+        $s3->bindValue(':groupe_id',   $this->groupe_id);
+        $s3->bindValue(':date_cours',  $this->date_cours);
+        $s3->bindValue(':id',          (int)($this->id ?? 0));
+        $s3->bindValue(':heure_fin',   $this->heure_fin);
+        $s3->bindValue(':heure_debut', $this->heure_debut);
         $s3->execute();
         if ($s3->rowCount() > 0) $conflicts[] = 'groupe';
 

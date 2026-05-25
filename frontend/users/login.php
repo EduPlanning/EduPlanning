@@ -6,12 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../layout/css/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/boxicons@latest/css/boxicons.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
     <title>Connexion — EduPlanning</title>
 </head>
 
 <body class="auth-page">
-
     <div class="login-page">
         <div class="login-card" style="max-width:420px">
             <div class="login-logo">
@@ -19,25 +20,22 @@
                 <h1>Connexion</h1>
                 <p>Accédez à EduPlanning</p>
             </div>
-
             <div id="alertContainer"></div>
-
             <div class="form-group">
                 <label>Email</label>
-                <input type="email" id="email" class="form-control" placeholder="vous@ecole.ma">
+                <input type="email" id="email" class="form-control" placeholder="vous@ecole.ma" autocomplete="username">
             </div>
             <div class="form-group">
                 <label>Mot de passe</label>
-                <input type="password" id="password" class="form-control" placeholder="Mot de passe">
+                <input type="password" id="password" class="form-control" placeholder="Mot de passe"
+                    autocomplete="current-password">
             </div>
-
             <div class="login-actions">
                 <button class="btn btn-primary" id="btnLogin"><i class='bx bx-log-in'></i> Se connecter</button>
             </div>
             <div style="text-align:center;margin-top:0.5rem">
                 <a href="forgot_password.php" style="font-size:0.9rem">Mot de passe oublié ?</a>
             </div>
-
             <div class="login-footer">
                 Pour obtenir un compte, contactez un administrateur.
             </div>
@@ -45,49 +43,69 @@
     </div>
 
     <script>
-        const BASE = 'http://localhost/emploi_du_temps/backend/controllers';
+    /* BASE for auth pages: derive from current host */
+    const BASE = window.location.origin + '/emploi_du_temps/backend/controllers';
 
-        async function showAlert(message, type = 'danger') {
-            const box = document.getElementById('alertContainer');
-            box.innerHTML = `<div class="alert alert-${type}"><i class="bx ${type === 'success' ? 'bx-check-circle' : 'bx-x-circle'}"></i> ${message}</div>`;
+    function showAlert(message, type = 'danger') {
+        const box = document.getElementById('alertContainer');
+        box.innerHTML = `<div class="alert alert-${type}">
+                <i class="bx ${type === 'success' ? 'bx-check-circle' : 'bx-x-circle'}"></i>
+                ${message}
+            </div>`;
+    }
+
+    /* Allow Enter key to submit */
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('btnLogin').click();
+    });
+
+    document.getElementById('btnLogin').addEventListener('click', async () => {
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        if (!email || !password) {
+            showAlert('Veuillez remplir tous les champs.', 'warning');
+            return;
         }
 
-        document.getElementById('btnLogin').addEventListener('click', async () => {
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            if (!email || !password) {
-                showAlert('Veuillez remplir tous les champs.', 'warning');
-                return;
-            }
+        const btn = document.getElementById('btnLogin');
+        btn.disabled = true;
 
-            const btn = document.getElementById('btnLogin');
-            btn.disabled = true;
+        try {
+            /*
+             * FIX: credentials:'include' is mandatory so the browser stores
+             * the Set-Cookie header that PHP session_start() sends back.
+             * Without this the session is created but the cookie is discarded
+             * and every subsequent authenticated request gets a 401.
+             */
+            const res = await fetch(`${BASE}/users/login.php`, {
+                method: 'POST',
+                credentials: 'include',
+                /* ← THE critical fix */
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email,
+                    mot_de_passe: password
+                })
+            });
 
-            try {
-                const res = await fetch(`${BASE}/users/login.php`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        email,
-                        mot_de_passe: password
-                    })
-                });
-                const data = await res.json();
-                if (data.utilisateur) {
-                    localStorage.setItem('user', JSON.stringify(data.utilisateur));
-                    showAlert('Connexion réussie !', 'success');
-                    setTimeout(() => location.replace('../dashboard/index.php'), 900);
-                } else {
-                    showAlert(data.message || 'Échec de la connexion.');
-                    btn.disabled = false;
-                }
-            } catch (error) {
-                showAlert('Erreur réseau, veuillez réessayer.');
+            const data = await res.json();
+
+            if (data.utilisateur) {
+                /* Store user profile in localStorage for UI rendering */
+                localStorage.setItem('user', JSON.stringify(data.utilisateur));
+                showAlert('Connexion réussie !', 'success');
+                setTimeout(() => location.replace('../dashboard/index.php'), 800);
+            } else {
+                showAlert(data.message || 'Échec de la connexion.');
                 btn.disabled = false;
             }
-        });
+        } catch (error) {
+            showAlert('Erreur réseau — vérifiez que le serveur est démarré.');
+            btn.disabled = false;
+        }
+    });
     </script>
 </body>
 

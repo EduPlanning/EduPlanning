@@ -1,24 +1,42 @@
 <?php
-// backend/config/headers.php — Security and CORS headers (restrictive)
+/*
+ * backend/config/headers.php — Security & CORS headers (FIXED)
+ *
+ * Fix 1: Accept any localhost origin (127.0.0.1, ::1, custom ports)
+ *         so fetch() with credentials:'include' is not rejected.
+ * Fix 2: Access-Control-Allow-Credentials must be 'true' (string) for
+ *         browsers to honour credentials:'include' on the JS side.
+ * Fix 3: Handle OPTIONS preflight before any other output.
+ */
+
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-$allowedOrigins = ['http://localhost', 'http://127.0.0.1', 'http://localhost:80'];
-if (in_array($origin, $allowedOrigins) || strpos($origin, 'localhost') !== false) {
+
+/* Allow any localhost / 127.0.0.1 variant (port-agnostic) */
+$isLocalhost = (
+    $origin !== '' && (
+        preg_match('#^https?://(localhost|127\.0\.0\.1)(:\d+)?$#', $origin) ||
+        preg_match('#^https?://\[::1\](:\d+)?$#', $origin)
+    )
+);
+
+if ($isLocalhost) {
+    /* Reflect the exact origin so the browser accepts the response */
     header("Access-Control-Allow-Origin: $origin");
 } else {
-    header('Access-Control-Allow-Origin: http://localhost'); // fallback safe
+    /* Fallback for same-origin requests (no Origin header) */
+    header('Access-Control-Allow-Origin: http://localhost');
 }
+
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
-header('Access-Control-Allow-Credentials: true');
+header('Access-Control-Allow-Credentials: true');   /* ← required for credentials:'include' */
+header('Access-Control-Max-Age: 86400');            /* cache preflight 24 h */
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: SAMEORIGIN');
 header('Referrer-Policy: strict-origin-when-cross-origin');
-// Basic CSP for API (adjust if needed for frontend)
-header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' http://localhost;");
 
-// Handle preflight
+/* Handle preflight first — before any session_start() or DB calls */
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
 }
-?>
